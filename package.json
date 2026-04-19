@@ -2,6 +2,21 @@
 	"name": "parallax-desktop",
 	"private": true,
 	"scripts": {
-		"dev": "pnpm --filter web dev"
+		"dev": "concurrently \"pnpm --filter web dev\" \"pnpm --filter parallax-desktop-shell dev\"",
+		"build": "pnpm --filter web build && pnpm --filter parallax-desktop-shell build"
+	},
+	"dependencies": {
+		"concurrently": "^8.2.2"
+	},
+	"pnpm": {
+		"onlyBuiltDependencies": [
+			"@base-ui/react",
+			"@rive-app/react-webgl2",
+			"electron",
+			"esbuild",
+			"msw",
+			"sharp",
+			"unrs-resolver"
+		]
 	}
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { Cpu, TerminalWindow, Warning, Trash, Question, Plus, ListDashes, Archive, PuzzlePiece, GitCommit, GitPullRequest, Atom } from "@phosphor-icons/react";
+import { Cpu, TerminalWindow, Warning, Trash, Question, Plus, ListDashes, Archive, PuzzlePiece, GitCommit, GitPullRequest, Atom, Minus, Square, X, Copy, SidebarSimple, ChatTeardrop } from "@phosphor-icons/react";
 import { useState, useEffect, FormEvent } from "react";
 import { Conversation, ConversationContent } from "@/components/ai-elements/conversation";
 import { Message, MessageContent, MessageResponse } from "@/components/ai-elements/message";
@@ -11,11 +11,7 @@ import {
     PromptInputTextarea,
     PromptInputFooter,
     PromptInputSubmit,
-    PromptInputHeader,
     PromptInputBody,
-    PromptInputSelect,
-    PromptInputSelectTrigger,
-    PromptInputSelectValue,
     PromptInputTools,
     PromptInputCommand,
     PromptInputCommandList,
@@ -35,17 +31,6 @@ import {
     ModelSelectorTrigger,
     ModelSelectorGroup,
 } from "@/components/ai-elements/model-selector";
-import {
-    SessionSelector,
-    SessionSelectorContent,
-    SessionSelectorEmpty,
-    SessionSelectorGroup,
-    SessionSelectorInput,
-    SessionSelectorItem,
-    SessionSelectorList,
-    SessionSelectorName,
-    SessionSelectorTrigger,
-} from "@/components/ai-elements/session-selector";
 import { Shimmer } from "@/components/ai-elements/shimmer";
 import { CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
 import Image from "next/image";
@@ -73,12 +58,19 @@ export default function Home() {
     });
 
     const [modelSelectorOpen, setModelSelectorOpen] = useState(false);
-    const [sessionSelectorOpen, setSessionSelectorOpen] = useState(false);
     const [globalCommandOpen, setGlobalCommandOpen] = useState(false);
     const [slashCommandValue, setSlashCommandValue] = useState("");
-    const [availableSessions, setAvailableSessions] = useState<{ id: string, mtime: number, messageCount: number }[]>([]);
+    const [availableSessions, setAvailableSessions] = useState<{ id: string, mtime: number, messageCount: number, lastMessage?: string }[]>([]);
+    const [isMaximized, setIsMaximized] = useState(false);
+    const [sidebarOpen, setSidebarOpen] = useState(true);
 
     useEffect(() => {
+        if (typeof window !== 'undefined' && (window as any).electronAPI?.onMaximizeChange) {
+            (window as any).electronAPI.onMaximizeChange((maximized: boolean) => {
+                setIsMaximized(maximized);
+            });
+        }
+
         const down = (e: KeyboardEvent) => {
             if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
                 e.preventDefault();
@@ -90,15 +82,31 @@ export default function Home() {
         return () => document.removeEventListener("keydown", down);
     }, []);
 
+    const refreshSessions = async () => {
+        try {
+            const sessions = await fetch(`${API_URL}/sessions`).then(r => r.json());
+            if (Array.isArray(sessions)) setAvailableSessions(sessions);
+        } catch (e) {
+            console.error("Failed to fetch sessions", e);
+        }
+    };
 
     useEffect(() => {
         async function init() {
             try {
+                const params = new URLSearchParams(window.location.search);
+                const urlSession = params.get('session');
                 const ping = await fetch(`${API_URL}/ping`).then(r => r.json());
-                setSessionId(ping.sessionId);
+                
+                const initialSessionId = urlSession || ping.sessionId;
+                setSessionId(initialSessionId);
                 setStatus('connected');
+                
+                if (typeof window !== 'undefined') {
+                    window.history.replaceState(null, '', `?session=${initialSessionId}`);
+                }
 
-                const hist = await fetch(`${API_URL}/history/${ping.sessionId}`).then(r => r.json());
+                const hist = await fetch(`${API_URL}/history/${initialSessionId}`).then(r => r.json());
                 if (hist.blocks) {
                     setBlocks(hist.blocks);
                 }
@@ -116,14 +124,7 @@ export default function Home() {
                     console.error("Failed to fetch models", e);
                 }
 
-                try {
-                    const sessions = await fetch(`${API_URL}/sessions`).then(r => r.json());
-                    if (Array.isArray(sessions)) {
-                        setAvailableSessions(sessions);
-                    }
-                } catch (e) {
-                    console.error("Failed to fetch sessions", e);
-                }
+                await refreshSessions();
 
             } catch (e) {
                 setStatus('error');
@@ -133,17 +134,35 @@ export default function Home() {
     }, []);
 
     const loadSession = async (id: string) => {
-        setSessionSelectorOpen(false);
         setSessionId(id);
         const hist = await fetch(`${API_URL}/history/${id}`).then(r => r.json());
         setBlocks(hist.blocks || []);
+        if (typeof window !== 'undefined') {
+            window.history.replaceState(null, '', `?session=${id}`);
+        }
     };
 
-    const createNewSession = () => {
-        setSessionSelectorOpen(false);
+    const createNewSession = async () => {
         const newId = crypto.randomUUID().substring(0, 8);
         setSessionId(newId);
         setBlocks([]);
+        if (typeof window !== 'undefined') {
+            window.history.replaceState(null, '', `?session=${newId}`);
+        }
+        await refreshSessions();
+    };
+
+    const deleteSession = async (id: string) => {
+        setAvailableSessions(prev => prev.filter(s => s.id !== id));
+        try {
+            await fetch(`${API_URL}/sessions/${id}`, { method: 'DELETE' });
+            if (sessionId === id) {
+                createNewSession();
+            }
+            await refreshSessions();
+        } catch (e) {
+            console.error("Failed to delete session", e);
+        }
     };
 
     const stopGeneration = () => {
@@ -288,6 +307,7 @@ export default function Home() {
         } finally {
             setStreaming(false);
             setAbortController(null);
+            refreshSessions();
         }
     };
 
@@ -319,283 +339,344 @@ export default function Home() {
     return (
         <main className="flex min-h-screen flex-col bg-background text-foreground h-screen overflow-hidden">
             {/* Header */}
-            <header className="shrink-0 flex items-center justify-between px-6 py-4 border-b border-border bg-card/50 backdrop-blur-md relative z-10">
-                <div className="flex items-center gap-3">
-                    <Image src="/logo.png" alt="Parallax" width={24} height={24} className="w-5 h-5 text-muted-foreground" />
-                    <h1 className="text-sm font-normal">Parallax Desktop</h1>
+            <header className="shrink-0 flex items-center justify-between px-6 py-4 border-b border-border bg-card/50 backdrop-blur-md relative z-10 [-webkit-app-region:drag]">
+                <div className="flex items-center gap-4">
+                    <button
+                        className="[-webkit-app-region:no-drag] text-muted-foreground hover:text-foreground transition-colors focus:outline-none"
+                        onClick={() => setSidebarOpen(!sidebarOpen)}
+                    >
+                        <SidebarSimple weight="bold" className="w-5 h-5" />
+                    </button>
+                    <div className="flex items-center gap-3">
+                        <Image loading="lazy" src="/logo.png" alt="Parallax" width={24} height={24} className="w-5 h-5 text-muted-foreground" />
+                        <h1 className="text-sm font-normal">Parallax Desktop</h1>
+                    </div>
+                </div>
+
+                <div className="flex items-center gap-3 [-webkit-app-region:no-drag]">
+                    <button
+                        onClick={() => (window as any).electronAPI?.windowMinimize()}
+                        className="text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors p-1.5 rounded-md focus:outline-none"
+                    >
+                        <Minus weight="bold" className="w-4 h-4" />
+                    </button>
+                    <button
+                        onClick={() => (window as any).electronAPI?.windowToggleMaximize()}
+                        className="text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors p-1.5 rounded-md focus:outline-none"
+                    >
+                        {isMaximized ? (
+                            <Copy weight="bold" className="w-4 h-4" />
+                        ) : (
+                            <Square weight="bold" className="w-4 h-4" />
+                        )}
+                    </button>
+                    <button
+                        onClick={() => (window as any).electronAPI?.windowClose()}
+                        className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors p-1.5 rounded-md focus:outline-none"
+                    >
+                        <X weight="bold" className="w-4 h-4" />
+                    </button>
                 </div>
             </header>
 
-            {/* Main Feed using AI Elements */}
-            <div className="flex-1 overflow-hidden max-w-3xl w-full mx-auto">
-                <Conversation className="h-full">
-                    <ConversationContent className="px-6 py-8">
-                        {blocks.length === 0 ? (
-                            <div className="py-24 text-center text-muted-foreground font-mono text-sm">
-                                Session initialized. Awaiting input.
-                            </div>
-                        ) : (
-                            blocks.map((b, idx) => {
-                                const isStreamingBlock = streaming && idx === blocks.length - 1;
+            <div className="flex-1 flex overflow-hidden">
+                {/* Sidebar */}
+                {sidebarOpen && (
+                    <aside className="w-64 shrink-0 overflow-y-auto border-r border-border bg-card/10 flex flex-col hide-scrollbar">
+                        <div className="p-4 border-b border-border/50">
+                            <button
+                                onClick={createNewSession}
+                                className="w-full flex items-center justify-between px-3 py-2 text-sm font-medium text-foreground bg-primary/10 hover:bg-primary/20 rounded-md transition-colors"
+                            >
+                                <span>New Session</span>
+                                <Plus weight="bold" className="w-4 h-4" />
+                            </button>
+                        </div>
+                        <div className="p-2 flex-1 flex flex-col gap-1">
+                            {availableSessions.length === 0 ? (
+                                <div className="px-3 py-4 text-xs text-muted-foreground text-center">No recent sessions</div>
+                            ) : (
+                                availableSessions.map((session) => (
+                                    <div
+                                        key={session.id}
+                                        className={`group flex items-start justify-between px-3 py-3 rounded-md cursor-pointer transition-colors ${sessionId === session.id
+                                            ? "bg-white/10"
+                                            : "hover:bg-white/5"
+                                            }`}
+                                        onClick={() => loadSession(session.id)}
+                                    >
+                                        <div className="flex flex-col gap-1 truncate w-full pr-2">
+                                            <div className="flex items-center gap-2">
+                                                <ChatTeardrop weight={sessionId === session.id ? "fill" : "regular"} className={`w-3.5 h-3.5 shrink-0 ${sessionId === session.id ? "text-foreground" : "text-muted-foreground"}`} />
+                                                <span className={`truncate text-sm ${sessionId === session.id ? "text-foreground font-medium" : "text-muted-foreground"}`}>{session.id}</span>
+                                            </div>
+                                            <div className="text-[11px] text-muted-foreground/70 pl-5.5 truncate font-sans italic">
+                                                {session.lastMessage || 'Empty session...'}
+                                            </div>
+                                            <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/50 pl-5.5 font-mono mt-0.5">
+                                                <span>{new Date(session.mtime).toLocaleDateString()}</span>
+                                                <span>&middot;</span>
+                                                <span>{session.messageCount} msg{session.messageCount !== 1 ? 's' : ''}</span>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                deleteSession(session.id);
+                                            }}
+                                            className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all focus:outline-none p-1.5 -mr-1 mt-0.5 rounded"
+                                            title="Delete Session"
+                                        >
+                                            <Trash weight="fill" className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </aside>
+                )}
 
-                                if (b.type === 'user') {
-                                    return (
-                                        <Message key={b.id} from="user">
-                                            <MessageContent className="whitespace-pre-wrap font-sans text-sm pb-8">
-                                                {b.text}
-                                            </MessageContent>
-                                        </Message>
-                                    );
-                                }
+                {/* Main Content Area */}
+                <div className="flex-1 flex flex-col overflow-hidden relative">
+                    {/* Main Feed using AI Elements */}
+                    <div className="flex-1 overflow-hidden max-w-3xl w-full mx-auto">
+                        <Conversation className="h-full">
+                            <ConversationContent className="px-6 py-8">
+                                {blocks.length === 0 ? (
+                                    <div className="py-24 text-center text-muted-foreground font-mono text-sm">
+                                        Session initialized. Awaiting input.
+                                    </div>
+                                ) : (
+                                    blocks.map((b, idx) => {
+                                        const isStreamingBlock = streaming && idx === blocks.length - 1;
 
-                                if (b.type === 'assistant') {
-                                    return (
-                                        <Message key={b.id} from="assistant">
-                                            <MessageContent>
-                                                <MessageResponse className="font-sans text-sm text-foreground opacity-90 leading-relaxed pb-6">
-                                                    {b.text || <span className="text-destructive">{'<empty response>'}</span>}
-                                                </MessageResponse>
-                                            </MessageContent>
-                                        </Message>
-                                    );
-                                }
+                                        if (b.type === 'user') {
+                                            return (
+                                                <Message key={b.id} from="user">
+                                                    <MessageContent className="whitespace-pre-wrap font-sans text-sm pb-8">
+                                                        {b.text}
+                                                    </MessageContent>
+                                                </Message>
+                                            );
+                                        }
 
-                                if (b.type === 'thinking') {
-                                    return (
-                                        <Message key={b.id} from="assistant">
-                                            <MessageContent>
-                                                <Reasoning isStreaming={isStreamingBlock} duration={(b as any).duration}>
-                                                    <ReasoningTrigger />
-                                                    <ReasoningContent className="font-mono text-sm relative">{b.text}</ReasoningContent>
-                                                </Reasoning>
-                                            </MessageContent>
-                                        </Message>
-                                    );
-                                }
+                                        if (b.type === 'assistant') {
+                                            return (
+                                                <Message key={b.id} from="assistant">
+                                                    <MessageContent>
+                                                        <MessageResponse className="font-sans text-sm text-foreground opacity-90 leading-relaxed pb-6">
+                                                            {b.text || '<empty response>'}
+                                                        </MessageResponse>
+                                                    </MessageContent>
+                                                </Message>
+                                            );
+                                        }
 
-                                if (b.type === 'tool-call') {
-                                    const isDone = b.call.status === 'done';
-                                    return (
-                                        <Message key={b.id} from="assistant">
-                                            <MessageContent>
-                                                <Tool>
-                                                    <ToolHeader
-                                                        type="tool-invocation"
-                                                        state={isDone ? "output-available" : "input-available"}
-                                                        title={b.call.name.replace(/_/g, ' ')}
-                                                    />
-                                                    <ToolContent>
-                                                        <ToolInput input={b.call.args} />
-                                                        {isDone && b.call.result && <ToolOutput output={b.call.result} />}
-                                                    </ToolContent>
-                                                </Tool>
-                                            </MessageContent>
-                                        </Message>
-                                    );
-                                }
-                                return null;
-                            })
-                        )}
+                                        if (b.type === 'thinking') {
+                                            return (
+                                                <Message key={b.id} from="assistant">
+                                                    <MessageContent>
+                                                        <Reasoning isStreaming={isStreamingBlock} duration={(b as any).duration}>
+                                                            <ReasoningTrigger />
+                                                            <ReasoningContent className="font-mono text-sm relative">{b.text}</ReasoningContent>
+                                                        </Reasoning>
+                                                    </MessageContent>
+                                                </Message>
+                                            );
+                                        }
 
-                        {streaming && (
-                            <Message from="assistant">
-                                <MessageContent>
-                                    <Shimmer>Working...</Shimmer>
-                                </MessageContent>
-                            </Message>
-                        )}
-                    </ConversationContent>
-                </Conversation>
-            </div>
+                                        if (b.type === 'tool-call') {
+                                            const isDone = b.call.status === 'done';
+                                            return (
+                                                <Message key={b.id} from="assistant">
+                                                    <MessageContent>
+                                                        <Tool>
+                                                            <ToolHeader
+                                                                type="tool-invocation"
+                                                                state={isDone ? "output-available" : "input-available"}
+                                                                title={b.call.name.replace(/_/g, ' ')}
+                                                            />
+                                                            <ToolContent>
+                                                                <ToolInput input={b.call.args} />
+                                                                {isDone && b.call.result && <ToolOutput output={b.call.result} errorText="" />}
+                                                            </ToolContent>
+                                                        </Tool>
+                                                    </MessageContent>
+                                                </Message>
+                                            );
+                                        }
+                                        return null;
+                                    })
+                                )}
 
-            {/* Input */}
-            <div className="shrink-0 p-6 bg-card/30 border-t border-border backdrop-blur-md relative z-10 w-full">
-                <div className="max-w-3xl mx-auto relative group">
-                    {(() => {
-                        const showSlashMenu = input.startsWith('/');
-                        const slashCommands = [
-                            { value: '/model', label: '/model', desc: 'Change the current model', action: () => setModelSelectorOpen(true), icon: <Cpu weight="duotone" className="w-4 h-4 text-muted-foreground mr-2" /> },
-                            { value: '/new', label: '/new (or /clear)', desc: 'Starts a brand new session and clears the screen', action: createNewSession, icon: <Trash weight="duotone" className="w-4 h-4 text-muted-foreground mr-2" /> },
-                            { value: '/init', label: '/init', desc: 'Analyze codebase and create PARALLAX.md', action: () => onSubmit('/init'), icon: <TerminalWindow weight="duotone" className="w-4 h-4 text-muted-foreground mr-2" /> },
-                            { value: '/compact', label: '/compact', desc: 'Summarize and compress conversation history to save tokens', action: () => onSubmit('/compact'), icon: <Archive weight="duotone" className="w-4 h-4 text-muted-foreground mr-2" /> },
-                            { value: '/load', label: '/load', desc: 'Loads or switches to a historical session memory', action: () => setSessionSelectorOpen(true), icon: <ListDashes weight="duotone" className="w-4 h-4 text-muted-foreground mr-2" /> },
-                            { value: '/skills', label: '/skills', desc: 'Install new agent skills from skills.sh locally or globally', action: () => onSubmit('/skills'), icon: <PuzzlePiece weight="duotone" className="w-4 h-4 text-muted-foreground mr-2" /> },
-                            { value: '/commit', label: '/commit', desc: 'Creates a commit with the current changes, then pushes', action: () => onSubmit('/commit'), icon: <GitCommit weight="duotone" className="w-4 h-4 text-muted-foreground mr-2" /> },
-                            { value: '/commit:pr', label: '/commit:pr', desc: 'Creates a commit, pushes, and uses the GitHub CLI to open a pull request', action: () => onSubmit('/commit:pr'), icon: <GitPullRequest weight="duotone" className="w-4 h-4 text-muted-foreground mr-2" /> },
-                            { value: '/commit:no-push', label: '/commit:no-push', desc: 'Creates a commit with the current changes without pushing', action: () => onSubmit('/commit:no-push'), icon: <GitCommit weight="duotone" className="w-4 h-4 text-muted-foreground mr-2" /> },
-                            { value: '/parallax', label: '/parallax', desc: 'Spawns a Master Coordinator Agent to orchestrate subagents for a large task', action: () => onSubmit('/parallax'), icon: <Atom weight="duotone" className="w-4 h-4 text-muted-foreground mr-2" /> },
-                            { value: '/help', label: '/help', desc: 'Show available capabilities', action: () => onSubmit("/help"), icon: <Question weight="duotone" className="w-4 h-4 text-muted-foreground mr-2" /> }
-                        ];
-                        const filtered = slashCommands.filter(c => c.value.startsWith(input.trim().toLowerCase()));
+                                {streaming && (
+                                    <Message from="assistant">
+                                        <MessageContent>
+                                            <Shimmer>Working...</Shimmer>
+                                        </MessageContent>
+                                    </Message>
+                                )}
+                            </ConversationContent>
+                        </Conversation>
+                    </div>
 
-                        return showSlashMenu && (
-                            <div className="absolute bottom-[calc(100%+8px)] left-0 w-[400px] rounded-lg border border-border/60 bg-popover/90 backdrop-blur-md shadow-lg overflow-hidden animate-in slide-in-from-bottom-2 fade-in z-50">
-                                <PromptInputCommand 
-                                    className="bg-transparent border-none outline-none"
-                                    value={slashCommandValue}
-                                    onValueChange={setSlashCommandValue}
-                                >
-                                    <PromptInputCommandList>
-                                        {filtered.length === 0 && (
-                                            <PromptInputCommandEmpty className="py-6 text-center text-sm text-muted-foreground">No command found.</PromptInputCommandEmpty>
-                                        )}
-                                        {filtered.length > 0 && (
-                                            <PromptInputCommandGroup heading="Slash Commands">
-                                                {filtered.map(cmd => (
-                                                    <PromptInputCommandItem
-                                                        key={cmd.value}
-                                                        value={cmd.value}
-                                                        onSelect={() => {
+                    {/* Input */}
+                    <div className="shrink-0 p-6 bg-card/30 border-t border-border backdrop-blur-md relative z-10 w-full">
+                        <div className="max-w-3xl mx-auto relative group">
+                            {(() => {
+                                const showSlashMenu = input.startsWith('/');
+                                const slashCommands = [
+                                    { value: '/model', label: '/model', desc: 'Change the current model', action: () => setModelSelectorOpen(true), icon: <Cpu weight="duotone" className="w-4 h-4 text-muted-foreground mr-2" /> },
+                                    { value: '/new', label: '/new (or /clear)', desc: 'Starts a brand new session and clears the screen', action: createNewSession, icon: <Trash weight="duotone" className="w-4 h-4 text-muted-foreground mr-2" /> },
+                                    { value: '/init', label: '/init', desc: 'Analyze codebase and create PARALLAX.md', action: () => onSubmit('/init'), icon: <TerminalWindow weight="duotone" className="w-4 h-4 text-muted-foreground mr-2" /> },
+                                    { value: '/compact', label: '/compact', desc: 'Summarize and compress conversation history to save tokens', action: () => onSubmit('/compact'), icon: <Archive weight="duotone" className="w-4 h-4 text-muted-foreground mr-2" /> },
+                                    { value: '/load', label: '/load', desc: 'Loads or switches to a historical session memory', action: () => setSidebarOpen(true), icon: <ListDashes weight="duotone" className="w-4 h-4 text-muted-foreground mr-2" /> },
+                                    { value: '/skills', label: '/skills', desc: 'Install new agent skills from skills.sh locally or globally', action: () => onSubmit('/skills'), icon: <PuzzlePiece weight="duotone" className="w-4 h-4 text-muted-foreground mr-2" /> },
+                                    { value: '/commit', label: '/commit', desc: 'Creates a commit with the current changes, then pushes', action: () => onSubmit('/commit'), icon: <GitCommit weight="duotone" className="w-4 h-4 text-muted-foreground mr-2" /> },
+                                    { value: '/commit:pr', label: '/commit:pr', desc: 'Creates a commit, pushes, and uses the GitHub CLI to open a pull request', action: () => onSubmit('/commit:pr'), icon: <GitPullRequest weight="duotone" className="w-4 h-4 text-muted-foreground mr-2" /> },
+                                    { value: '/commit:no-push', label: '/commit:no-push', desc: 'Creates a commit with the current changes without pushing', action: () => onSubmit('/commit:no-push'), icon: <GitCommit weight="duotone" className="w-4 h-4 text-muted-foreground mr-2" /> },
+                                    { value: '/parallax', label: '/parallax', desc: 'Spawns a Master Coordinator Agent to orchestrate subagents for a large task', action: () => onSubmit('/parallax'), icon: <Atom weight="duotone" className="w-4 h-4 text-muted-foreground mr-2" /> },
+                                    { value: '/help', label: '/help', desc: 'Show available capabilities', action: () => onSubmit("/help"), icon: <Question weight="duotone" className="w-4 h-4 text-muted-foreground mr-2" /> }
+                                ];
+                                const filtered = slashCommands.filter(c => c.value.startsWith(input.trim().toLowerCase()));
+
+                                return showSlashMenu && (
+                                    <div className="absolute bottom-[calc(100%+8px)] left-0 w-[400px] rounded-lg border border-border/60 bg-popover/90 backdrop-blur-md shadow-lg overflow-hidden animate-in slide-in-from-bottom-2 fade-in z-50">
+                                        <PromptInputCommand
+                                            className="bg-transparent border-none outline-none"
+                                            value={slashCommandValue}
+                                            onValueChange={setSlashCommandValue}
+                                        >
+                                            <PromptInputCommandList>
+                                                {filtered.length === 0 && (
+                                                    <PromptInputCommandEmpty className="py-6 text-center text-sm text-muted-foreground">No command found.</PromptInputCommandEmpty>
+                                                )}
+                                                {filtered.length > 0 && (
+                                                    <PromptInputCommandGroup heading="Slash Commands">
+                                                        {filtered.map(cmd => (
+                                                            <PromptInputCommandItem
+                                                                key={cmd.value}
+                                                                value={cmd.value}
+                                                                onSelect={() => {
+                                                                    setInput("");
+                                                                    cmd.action();
+                                                                }}
+                                                                className="flex items-center cursor-pointer py-2 px-3"
+                                                            >
+                                                                {cmd.icon}
+                                                                <span className="font-medium mr-2">{cmd.label}</span>
+                                                                <span className="text-muted-foreground text-xs">{cmd.desc}</span>
+                                                            </PromptInputCommandItem>
+                                                        ))}
+                                                    </PromptInputCommandGroup>
+                                                )}
+                                            </PromptInputCommandList>
+                                        </PromptInputCommand>
+                                    </div>
+                                );
+                            })()}
+                            <PromptInput onSubmit={({ text }) => { if (!streaming) { setInput(text); onSubmit(text); } }}>
+                                <PromptInputBody className="relative">
+                                    <PromptInputTextarea
+                                        value={input}
+                                        onChange={e => setInput(e.target.value)}
+                                        onKeyDown={e => {
+                                            if (input.startsWith('/')) {
+                                                const slashCommands = [
+                                                    { value: '/model', action: () => setModelSelectorOpen(true) },
+                                                    { value: '/new', action: createNewSession },
+                                                    { value: '/clear', action: createNewSession },
+                                                    { value: '/init', action: () => onSubmit('/init') },
+                                                    { value: '/compact', action: () => onSubmit('/compact') },
+                                                    { value: '/load', action: () => setSidebarOpen(true) },
+                                                    { value: '/skills', action: () => onSubmit('/skills') },
+                                                    { value: '/commit', action: () => onSubmit('/commit') },
+                                                    { value: '/commit:pr', action: () => onSubmit('/commit:pr') },
+                                                    { value: '/commit:no-push', action: () => onSubmit('/commit:no-push') },
+                                                    { value: '/parallax', action: () => onSubmit(input) }, // pass full input for parallax args
+                                                    { value: '/help', action: () => onSubmit('/help') }
+                                                ];
+                                                const filtered = slashCommands.filter(c => c.value.startsWith(input.trim().toLowerCase()));
+
+                                                if (filtered.length > 0) {
+                                                    const currentIndex = filtered.findIndex(c => c.value === slashCommandValue);
+
+                                                    if (e.key === 'ArrowDown') {
+                                                        e.preventDefault();
+                                                        const nextIdx = currentIndex === -1 ? 0 : (currentIndex + 1) % filtered.length;
+                                                        setSlashCommandValue(filtered[nextIdx].value);
+                                                    } else if (e.key === 'ArrowUp') {
+                                                        e.preventDefault();
+                                                        const nextIdx = currentIndex === -1 ? filtered.length - 1 : (currentIndex - 1 + filtered.length) % filtered.length;
+                                                        setSlashCommandValue(filtered[nextIdx].value);
+                                                    } else if (e.key === 'Enter') {
+                                                        e.preventDefault();
+                                                        const selected = filtered.find(c => c.value === slashCommandValue) || filtered[0];
+                                                        if (selected) {
                                                             setInput("");
-                                                            cmd.action();
-                                                        }}
-                                                        className="flex items-center cursor-pointer py-2 px-3"
-                                                    >
-                                                        {cmd.icon}
-                                                        <span className="font-medium mr-2">{cmd.label}</span>
-                                                        <span className="text-muted-foreground text-xs">{cmd.desc}</span>
-                                                    </PromptInputCommandItem>
-                                                ))}
-                                            </PromptInputCommandGroup>
-                                        )}
-                                    </PromptInputCommandList>
-                                </PromptInputCommand>
-                            </div>
-                        );
-                    })()}
-                    <PromptInput onSubmit={({ text }) => { if (!streaming) { setInput(text); onSubmit(text); } }}>
-                        <PromptInputBody className="relative">
-                            <PromptInputTextarea
-                                value={input}
-                                onChange={e => setInput(e.target.value)}
-                                onKeyDown={e => {
-                                    if (input.startsWith('/')) {
-                                        const slashCommands = [
-                                            { value: '/model', action: () => setModelSelectorOpen(true) },
-                                            { value: '/new', action: createNewSession },
-                                            { value: '/clear', action: createNewSession },
-                                            { value: '/init', action: () => onSubmit('/init') },
-                                            { value: '/compact', action: () => onSubmit('/compact') },
-                                            { value: '/load', action: () => setSessionSelectorOpen(true) },
-                                            { value: '/skills', action: () => onSubmit('/skills') },
-                                            { value: '/commit', action: () => onSubmit('/commit') },
-                                            { value: '/commit:pr', action: () => onSubmit('/commit:pr') },
-                                            { value: '/commit:no-push', action: () => onSubmit('/commit:no-push') },
-                                            { value: '/parallax', action: () => onSubmit(input) }, // pass full input for parallax args
-                                            { value: '/help', action: () => onSubmit('/help') }
-                                        ];
-                                        const filtered = slashCommands.filter(c => c.value.startsWith(input.trim().toLowerCase()));
-                                        
-                                        if (filtered.length > 0) {
-                                            const currentIndex = filtered.findIndex(c => c.value === slashCommandValue);
-                                            
-                                            if (e.key === 'ArrowDown') {
-                                                e.preventDefault();
-                                                const nextIdx = currentIndex === -1 ? 0 : (currentIndex + 1) % filtered.length;
-                                                setSlashCommandValue(filtered[nextIdx].value);
-                                            } else if (e.key === 'ArrowUp') {
-                                                e.preventDefault();
-                                                const nextIdx = currentIndex === -1 ? filtered.length - 1 : (currentIndex - 1 + filtered.length) % filtered.length;
-                                                setSlashCommandValue(filtered[nextIdx].value);
-                                            } else if (e.key === 'Enter') {
-                                                e.preventDefault();
-                                                const selected = filtered.find(c => c.value === slashCommandValue) || filtered[0];
-                                                if (selected) {
-                                                    setInput("");
-                                                    selected.action();
+                                                            selected.action();
+                                                        }
+                                                    }
                                                 }
                                             }
-                                        }
-                                    }
-                                }}
-                                disabled={streaming}
-                                placeholder="Command Parallax..."
-                            />
-                        </PromptInputBody>
-                        <PromptInputFooter>
-                            <PromptInputTools>
-                                <ModelSelector open={modelSelectorOpen} onOpenChange={setModelSelectorOpen}>
-                                    <ModelSelectorTrigger className="flex items-center gap-2 px-3 py-1.5 border border-border/40 hover:bg-white/5 rounded-md transition-colors cursor-pointer outline-none max-w-[200px]">
-                                        <ModelSelectorLogo provider={selectedModel.provider} />
-                                        <ModelSelectorName>{selectedModel.label}</ModelSelectorName>
-                                    </ModelSelectorTrigger>
-                                    <ModelSelectorContent title="Select Model" className="sm:max-w-106.25">
-                                        <ModelSelectorInput placeholder="Search models..." />
-                                        <ModelSelectorList>
-                                            <ModelSelectorEmpty>No models found.</ModelSelectorEmpty>
-                                            {Object.entries(
-                                                availableModels.reduce((acc, m) => {
-                                                    if (!acc[m.group]) acc[m.group] = [];
-                                                    acc[m.group].push(m);
-                                                    return acc;
-                                                }, {} as Record<string, typeof availableModels>)
-                                            ).map(([group, models]) => (
-                                                <ModelSelectorGroup key={group} heading={group}>
-                                                    {models.map(m => {
-                                                        const providerName = m.id.split(':')[0];
-                                                        return (
-                                                            <ModelSelectorItem
-                                                                key={m.id}
-                                                                onSelect={() => {
-                                                                    setSelectedModel({ id: m.id, label: m.label, provider: providerName });
-                                                                    setModelSelectorOpen(false);
-                                                                }}
-                                                            >
-                                                                <ModelSelectorLogo provider={providerName} className="mr-2" />
-                                                                {m.label}
-                                                            </ModelSelectorItem>
-                                                        )
-                                                    })}
-                                                </ModelSelectorGroup>
-                                            ))}
-                                        </ModelSelectorList>
-                                    </ModelSelectorContent>
-                                </ModelSelector>
-                                <SessionSelector open={sessionSelectorOpen} onOpenChange={setSessionSelectorOpen}>
-                                    <SessionSelectorTrigger className="flex items-center gap-2 px-3 py-1.5 border border-border/40 hover:bg-white/5 rounded-md transition-colors cursor-pointer outline-none">
-                                        <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                                        <SessionSelectorName>{sessionId || "..."}</SessionSelectorName>
-                                    </SessionSelectorTrigger>
-                                    <SessionSelectorContent title="Select Session" className="sm:max-w-106.25">
-                                        <SessionSelectorInput placeholder="Search sessions..." />
-                                        <SessionSelectorList>
-                                            <SessionSelectorEmpty>No sessions found.</SessionSelectorEmpty>
-                                            <SessionSelectorGroup heading="Actions">
-                                                <SessionSelectorItem onSelect={createNewSession}>
-                                                    <span className="font-medium">Create New Session</span>
-                                                </SessionSelectorItem>
-                                            </SessionSelectorGroup>
-                                            <SessionSelectorGroup heading="Sessions">
-                                                {availableSessions.map(session => (
-                                                    <SessionSelectorItem key={session.id} onSelect={() => loadSession(session.id)}>
-                                                        <div className="flex flex-col w-full text-left gap-1 my-1">
-                                                            <span className="font-medium text-sm text-foreground flex items-center justify-between">
-                                                                {session.id}
-                                                                {session.id === sessionId && <div className="w-1.5 h-1.5 rounded-full bg-green-500" />}
-                                                            </span>
-                                                            <span className="text-xs text-muted-foreground flex justify-between">
-                                                                <span>{new Date(session.mtime).toLocaleTimeString()}</span>
-                                                                <span>{session.messageCount} msgs</span>
-                                                            </span>
-                                                        </div>
-                                                    </SessionSelectorItem>
-                                                ))}
-                                            </SessionSelectorGroup>
-                                        </SessionSelectorList>
-                                    </SessionSelectorContent>
-                                </SessionSelector>
-                            </PromptInputTools>
-                            <PromptInputSubmit
-                                disabled={streaming ? false : !input.trim()}
-                                status={streaming ? "streaming" : "ready"}
-                                onStop={stopGeneration}
-                                onClick={e => {
-                                    if (streaming) e.preventDefault();
-                                    // allow standard submission
-                                }}
-                            />
-                        </PromptInputFooter>
-                    </PromptInput>
+                                        }}
+                                        disabled={streaming}
+                                        placeholder="Command Parallax..."
+                                    />
+                                </PromptInputBody>
+                                <PromptInputFooter>
+                                    <PromptInputTools>
+                                        <ModelSelector open={modelSelectorOpen} onOpenChange={setModelSelectorOpen}>
+                                            <ModelSelectorTrigger className="flex items-center gap-2 px-3 py-1.5 border border-border/40 hover:bg-white/5 rounded-md transition-colors cursor-pointer outline-none max-w-50">
+                                                <ModelSelectorLogo provider={selectedModel.provider} />
+                                                <ModelSelectorName>{selectedModel.label}</ModelSelectorName>
+                                            </ModelSelectorTrigger>
+                                            <ModelSelectorContent title="Select Model" className="sm:max-w-106.25">
+                                                <ModelSelectorInput placeholder="Search models..." />
+                                                <ModelSelectorList>
+                                                    <ModelSelectorEmpty>No models found.</ModelSelectorEmpty>
+                                                    {Object.entries(
+                                                        availableModels.reduce((acc, m) => {
+                                                            if (!acc[m.group]) acc[m.group] = [];
+                                                            acc[m.group].push(m);
+                                                            return acc;
+                                                        }, {} as Record<string, typeof availableModels>)
+                                                    ).map(([group, models]) => (
+                                                        <ModelSelectorGroup key={group} heading={group}>
+                                                            {models.map(m => {
+                                                                const providerName = m.id.split(':')[0];
+                                                                return (
+                                                                    <ModelSelectorItem
+                                                                        key={m.id}
+                                                                        onSelect={() => {
+                                                                            setSelectedModel({ id: m.id, label: m.label, provider: providerName });
+                                                                            setModelSelectorOpen(false);
+                                                                        }}
+                                                                    >
+                                                                        <ModelSelectorLogo provider={providerName} className="mr-2" />
+                                                                        {m.label}
+                                                                    </ModelSelectorItem>
+                                                                )
+                                                            })}
+                                                        </ModelSelectorGroup>
+                                                    ))}
+                                                </ModelSelectorList>
+                                            </ModelSelectorContent>
+                                        </ModelSelector>
+                                    </PromptInputTools>
+                                    <PromptInputSubmit
+                                        disabled={streaming ? false : !input.trim()}
+                                        status={streaming ? "streaming" : "ready"}
+                                        onStop={stopGeneration}
+                                        onClick={e => {
+                                            if (streaming) e.preventDefault();
+                                            // allow standard submission
+                                        }}
+                                    />
+                                </PromptInputFooter>
+                            </PromptInput>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -613,7 +694,7 @@ export default function Home() {
                         </CommandItem>
                         <CommandItem onSelect={() => {
                             setGlobalCommandOpen(false);
-                            setSessionSelectorOpen(true);
+                            setSidebarOpen(true);
                         }} className="cursor-pointer py-3">
                             <ListDashes weight="bold" className="mr-2 h-4 w-4" />
                             <span>Switch Session</span>
