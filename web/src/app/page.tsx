@@ -1,6 +1,6 @@
 "use client";
 
-import { Cpu, TerminalWindow, Warning, Trash, Question, Plus, ListDashes } from "@phosphor-icons/react";
+import { Cpu, TerminalWindow, Warning, Trash, Question, Plus, ListDashes, Archive, PuzzlePiece, GitCommit, GitPullRequest, Atom } from "@phosphor-icons/react";
 import { useState, useEffect, FormEvent } from "react";
 import { Conversation, ConversationContent } from "@/components/ai-elements/conversation";
 import { Message, MessageContent, MessageResponse } from "@/components/ai-elements/message";
@@ -158,15 +158,37 @@ export default function Home() {
         const prompt = (overridePrompt || input).trim();
         if (!prompt || !sessionId || streaming) return;
 
-        const cmd = prompt.toLowerCase();
-        if (cmd === '/clear') {
+        const cmd = prompt.split(' ')[0].toLowerCase();
+        if (cmd === '/clear' || cmd === '/new') {
             setInput("");
             createNewSession();
             return;
-        } else if (cmd === '/help') {
-            setInput("");
-            onSubmit("List available capabilities and skills you have in this workspace");
-            return;
+        }
+
+        let displayUserText = prompt;
+        let sendUserText = prompt;
+
+        if (cmd === '/help') {
+            sendUserText = "List available capabilities and skills you have in this workspace";
+        } else if (cmd === '/init') {
+            sendUserText = "CRITICAL INSTRUCTION: Analyze the entire codebase in the current directory. Generate a 70-120 line comprehensive description of the codebase including architectural details, and write it to 'PARALLAX.md'. This file will be used as the agent's system prompt on subsequent initializations.";
+        } else if (cmd === '/compact') {
+            sendUserText = "CRITICAL INSTRUCTION: Provide an in-depth, highly comprehensive summary of our ENTIRE conversation history up to this point. Include all relevant technical context, code paths, goals, and decisions. This summary will be used to replace our entire context window to save tokens, so ensure no critical information is lost.";
+        } else if (cmd.startsWith('/commit')) {
+            if (cmd === '/commit:pr') {
+                sendUserText = "CRITICAL INSTRUCTION: Analyze the changes made in this session. Generate a commit message and commit them locally. To open a PR, check if the user has push access to origin. If they do not, use the GitHub CLI to autonomously fork the repository and push to the fork instead. Finally, use `gh pr create --fill` to submit the Pull Request. Ensure all `gh` commands are run non-interactively to prevent terminal hanging.";
+            } else if (cmd === '/commit:no-push') {
+                sendUserText = "CRITICAL INSTRUCTION: Analyze the changes made in this session. Generate a commit message for the current changes and commit them locally. Do NOT push to origin.";
+            } else {
+                sendUserText = "CRITICAL INSTRUCTION: Analyze the changes made in this session. Generate a commit message for the current changes. Afterwards commit with that message and push to origin.";
+            }
+        } else if (cmd === '/parallax') {
+            const objective = prompt.slice(9).trim();
+            displayUserText = `/parallax ${objective}`;
+            sendUserText = `CRITICAL INSTRUCTION: You are the Master Coordinator Agent. Your objective is: "${objective}".\nYou MUST NOT perform simple implementations directly. Instead, break this objective down into smaller tasks and use your \`subagent\` tool to spawn smaller execution agents to perform each sub-task. You MUST spawn all independent subagents concurrently in a SINGLE turn using parallel tool calls. Do not wait for one to finish before starting another unless they have strict dependencies. Coordinate their results and compile the complete solution.`;
+            setSelectedModel({ id: 'gemini:gemini-3.1-pro-preview', label: 'Gemini 3.1 Pro', provider: 'google' });
+        } else if (cmd === '/skills' || cmd === '/skills-install') {
+            sendUserText = `CRITICAL INSTRUCTION: List the available skills and ask me which one to install using the skill command.`;
         }
 
         setInput("");
@@ -176,13 +198,13 @@ export default function Home() {
         setAbortController(controller);
 
         const userBlockId = crypto.randomUUID();
-        setBlocks(prev => [...prev, { type: 'user', id: userBlockId, text: prompt }]);
+        setBlocks(prev => [...prev, { type: 'user', id: userBlockId, text: displayUserText }]);
 
         try {
             const res = await fetch(`${API_URL}/prompt`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ prompt, sessionId, model: selectedModel.id }),
+                body: JSON.stringify({ prompt: sendUserText, sessionId, model: selectedModel.id }),
                 signal: controller.signal
             });
 
@@ -389,59 +411,78 @@ export default function Home() {
             {/* Input */}
             <div className="shrink-0 p-6 bg-card/30 border-t border-border backdrop-blur-md relative z-10 w-full">
                 <div className="max-w-3xl mx-auto relative group">
+                    {(() => {
+                        const showSlashMenu = input.startsWith('/');
+                        const slashCommands = [
+                            { value: '/model', label: '/model', desc: 'Change the current model', action: () => setModelSelectorOpen(true), icon: <Cpu weight="duotone" className="w-4 h-4 text-muted-foreground mr-2" /> },
+                            { value: '/new', label: '/new (or /clear)', desc: 'Starts a brand new session and clears the screen', action: createNewSession, icon: <Trash weight="duotone" className="w-4 h-4 text-muted-foreground mr-2" /> },
+                            { value: '/init', label: '/init', desc: 'Analyze codebase and create PARALLAX.md', action: () => onSubmit('/init'), icon: <TerminalWindow weight="duotone" className="w-4 h-4 text-muted-foreground mr-2" /> },
+                            { value: '/compact', label: '/compact', desc: 'Summarize and compress conversation history to save tokens', action: () => onSubmit('/compact'), icon: <Archive weight="duotone" className="w-4 h-4 text-muted-foreground mr-2" /> },
+                            { value: '/load', label: '/load', desc: 'Loads or switches to a historical session memory', action: () => setSessionSelectorOpen(true), icon: <ListDashes weight="duotone" className="w-4 h-4 text-muted-foreground mr-2" /> },
+                            { value: '/skills', label: '/skills', desc: 'Install new agent skills from skills.sh locally or globally', action: () => onSubmit('/skills'), icon: <PuzzlePiece weight="duotone" className="w-4 h-4 text-muted-foreground mr-2" /> },
+                            { value: '/commit', label: '/commit', desc: 'Creates a commit with the current changes, then pushes', action: () => onSubmit('/commit'), icon: <GitCommit weight="duotone" className="w-4 h-4 text-muted-foreground mr-2" /> },
+                            { value: '/commit:pr', label: '/commit:pr', desc: 'Creates a commit, pushes, and uses the GitHub CLI to open a pull request', action: () => onSubmit('/commit:pr'), icon: <GitPullRequest weight="duotone" className="w-4 h-4 text-muted-foreground mr-2" /> },
+                            { value: '/commit:no-push', label: '/commit:no-push', desc: 'Creates a commit with the current changes without pushing', action: () => onSubmit('/commit:no-push'), icon: <GitCommit weight="duotone" className="w-4 h-4 text-muted-foreground mr-2" /> },
+                            { value: '/parallax', label: '/parallax', desc: 'Spawns a Master Coordinator Agent to orchestrate subagents for a large task', action: () => onSubmit('/parallax'), icon: <Atom weight="duotone" className="w-4 h-4 text-muted-foreground mr-2" /> },
+                            { value: '/help', label: '/help', desc: 'Show available capabilities', action: () => onSubmit("/help"), icon: <Question weight="duotone" className="w-4 h-4 text-muted-foreground mr-2" /> }
+                        ];
+                        const filtered = slashCommands.filter(c => c.value.startsWith(input.trim().toLowerCase()));
+
+                        return showSlashMenu && (
+                            <div className="absolute bottom-[calc(100%+8px)] left-0 w-[400px] rounded-lg border border-border/60 bg-popover/90 backdrop-blur-md shadow-lg overflow-hidden animate-in slide-in-from-bottom-2 fade-in z-50">
+                                <PromptInputCommand 
+                                    className="bg-transparent border-none outline-none"
+                                    value={slashCommandValue}
+                                    onValueChange={setSlashCommandValue}
+                                >
+                                    <PromptInputCommandList>
+                                        {filtered.length === 0 && (
+                                            <PromptInputCommandEmpty className="py-6 text-center text-sm text-muted-foreground">No command found.</PromptInputCommandEmpty>
+                                        )}
+                                        {filtered.length > 0 && (
+                                            <PromptInputCommandGroup heading="Slash Commands">
+                                                {filtered.map(cmd => (
+                                                    <PromptInputCommandItem
+                                                        key={cmd.value}
+                                                        value={cmd.value}
+                                                        onSelect={() => {
+                                                            setInput("");
+                                                            cmd.action();
+                                                        }}
+                                                        className="flex items-center cursor-pointer py-2 px-3"
+                                                    >
+                                                        {cmd.icon}
+                                                        <span className="font-medium mr-2">{cmd.label}</span>
+                                                        <span className="text-muted-foreground text-xs">{cmd.desc}</span>
+                                                    </PromptInputCommandItem>
+                                                ))}
+                                            </PromptInputCommandGroup>
+                                        )}
+                                    </PromptInputCommandList>
+                                </PromptInputCommand>
+                            </div>
+                        );
+                    })()}
                     <PromptInput onSubmit={({ text }) => { if (!streaming) { setInput(text); onSubmit(text); } }}>
                         <PromptInputBody className="relative">
-                            {(() => {
-                                const showSlashMenu = input.startsWith('/');
-                                const slashCommands = [
-                                    { value: '/clear', label: '/clear', desc: 'Clear conversation history', action: createNewSession, icon: <Trash weight="duotone" className="w-4 h-4 text-muted-foreground mr-2" /> },
-                                    { value: '/help', label: '/help', desc: 'Show available capabilities', action: () => onSubmit("List available capabilities and skills you have in this workspace"), icon: <Question weight="duotone" className="w-4 h-4 text-muted-foreground mr-2" /> }
-                                ];
-                                const filtered = slashCommands.filter(c => c.value.startsWith(input.trim().toLowerCase()));
-
-                                return showSlashMenu && (
-                                    <div className="absolute bottom-[calc(100%+8px)] left-0 w-[400px] rounded-lg border border-border/60 bg-popover/90 backdrop-blur-md shadow-lg overflow-hidden animate-in slide-in-from-bottom-2 fade-in">
-                                        <PromptInputCommand 
-                                            className="bg-transparent border-none outline-none"
-                                            value={slashCommandValue}
-                                            onValueChange={setSlashCommandValue}
-                                        >
-                                            <PromptInputCommandList>
-                                                {filtered.length === 0 && (
-                                                    <PromptInputCommandEmpty className="py-6 text-center text-sm text-muted-foreground">No command found.</PromptInputCommandEmpty>
-                                                )}
-                                                {filtered.length > 0 && (
-                                                    <PromptInputCommandGroup heading="Slash Commands">
-                                                        {filtered.map(cmd => (
-                                                            <PromptInputCommandItem
-                                                                key={cmd.value}
-                                                                value={cmd.value}
-                                                                onSelect={() => {
-                                                                    setInput("");
-                                                                    cmd.action();
-                                                                }}
-                                                                className="flex items-center cursor-pointer py-2 px-3"
-                                                            >
-                                                                {cmd.icon}
-                                                                <span className="font-medium mr-2">{cmd.label}</span>
-                                                                <span className="text-muted-foreground text-xs">{cmd.desc}</span>
-                                                            </PromptInputCommandItem>
-                                                        ))}
-                                                    </PromptInputCommandGroup>
-                                                )}
-                                            </PromptInputCommandList>
-                                        </PromptInputCommand>
-                                    </div>
-                                );
-                            })()}
                             <PromptInputTextarea
                                 value={input}
                                 onChange={e => setInput(e.target.value)}
                                 onKeyDown={e => {
                                     if (input.startsWith('/')) {
                                         const slashCommands = [
+                                            { value: '/model', action: () => setModelSelectorOpen(true) },
+                                            { value: '/new', action: createNewSession },
                                             { value: '/clear', action: createNewSession },
-                                            { value: '/help', action: () => onSubmit("List available capabilities and skills you have in this workspace") }
+                                            { value: '/init', action: () => onSubmit('/init') },
+                                            { value: '/compact', action: () => onSubmit('/compact') },
+                                            { value: '/load', action: () => setSessionSelectorOpen(true) },
+                                            { value: '/skills', action: () => onSubmit('/skills') },
+                                            { value: '/commit', action: () => onSubmit('/commit') },
+                                            { value: '/commit:pr', action: () => onSubmit('/commit:pr') },
+                                            { value: '/commit:no-push', action: () => onSubmit('/commit:no-push') },
+                                            { value: '/parallax', action: () => onSubmit(input) }, // pass full input for parallax args
+                                            { value: '/help', action: () => onSubmit('/help') }
                                         ];
                                         const filtered = slashCommands.filter(c => c.value.startsWith(input.trim().toLowerCase()));
                                         
