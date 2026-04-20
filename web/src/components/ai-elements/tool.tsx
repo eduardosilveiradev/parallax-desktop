@@ -272,7 +272,7 @@ export const ToolInput = ({ className, input, name, ...props }: ToolInputProps) 
                         <span className="font-medium text-muted-foreground text-[10px] uppercase tracking-wide">{key}</span>
                         {isMultiline ? (
                             <div className="rounded-md border border-border/50 bg-muted/30">
-                                <CodeBlock code={value as string} language={name === 'WriteToFile' ? 'text' as (BundledLanguage & 'text') : 'json'} />
+                                <CodeBlock code={value as string} language={name === 'WriteToFile' ? 'text' as BundledLanguage : 'json'} />
                             </div>
                         ) : (
                             <div className="font-mono text-xs p-2 rounded bg-muted/50 text-foreground break-all">
@@ -304,14 +304,13 @@ export const ToolOutput = ({
     }
 
     let Output: ReactNode = null;
-
     if (errorText) {
         Output = <div className="p-3 bg-destructive/10 text-destructive rounded-md">{errorText}</div>;
     } else if (typeof output === "object" && !isValidElement(output)) {
         if (output.content && typeof output.content === 'string') {
-            const isFile = output.path && name === 'ViewFile';
-            const lang = isFile ? path.extname(output.path).slice(1) : undefined;
-            Output = <div className="border border-border/50 rounded-md overflow-hidden bg-muted/30"><CodeBlock code={output.content} language={lang || 'plaintext'} /></div>;
+            const isFile = !!(output.path && name === 'ViewFile');
+            const lang = (isFile ? path.extname(output.path as string).slice(1) : 'text') as BundledLanguage;
+            Output = <div className="border border-border/50 rounded-md overflow-hidden bg-muted/30"><CodeBlock code={output.content} language={lang} /></div>;
         } else if (output.diff && typeof output.diff === 'string') {
             Output = null; // Let the DiffViewer render it
         } else if (name === 'ListDir' && output.content) {

@@ -698,13 +698,21 @@ export default function Home() {
                                     })
                                 )}
 
-                                {streaming && (groupedBlocks.length === 0 || (groupedBlocks[groupedBlocks.length - 1].type === 'single' && groupedBlocks[groupedBlocks.length - 1].block.type === 'user')) && (
-                                    <Message from="assistant">
-                                        <MessageContent>
-                                            <Shimmer>Working...</Shimmer>
-                                        </MessageContent>
-                                    </Message>
-                                )}
+                                {(() => {
+                                    const lastGroup = groupedBlocks[groupedBlocks.length - 1];
+                                    const isWorkPending = streaming && (!lastGroup || (lastGroup.type === 'single' && lastGroup.block.type === 'user'));
+
+                                    if (isWorkPending) {
+                                        return (
+                                            <Message from="assistant">
+                                                <MessageContent>
+                                                    <Shimmer>Working...</Shimmer>
+                                                </MessageContent>
+                                            </Message>
+                                        );
+                                    }
+                                    return null;
+                                })()}
                             </ConversationContent>
                         </Conversation>
                     </div>
@@ -730,7 +738,7 @@ export default function Home() {
                                 const filtered = slashCommands.filter(c => c.value.startsWith(input.trim().toLowerCase()));
 
                                 return showSlashMenu && (
-                                    <div className="absolute bottom-[calc(100%+8px)] left-0 w-[400px] rounded-lg border border-border/60 bg-popover/90 backdrop-blur-md shadow-lg overflow-hidden animate-in slide-in-from-bottom-2 fade-in z-50">
+                                    <div className="absolute bottom-[calc(100%+8px)] left-0 w-100 rounded-lg border border-border/60 bg-popover/90 backdrop-blur-md shadow-lg overflow-hidden animate-in slide-in-from-bottom-2 fade-in z-50">
                                         <PromptInputCommand
                                             className="bg-transparent border-none outline-none"
                                             value={slashCommandValue}
