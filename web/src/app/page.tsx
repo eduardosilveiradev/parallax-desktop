@@ -1,7 +1,7 @@
 "use client";
 
-import { Cpu, TerminalWindow, Warning, Shield, Trash, Question, Plus, ListDashes, Archive, PuzzlePiece, GitCommit, GitPullRequest, Atom, Minus, Square, X, Copy, SidebarSimple, ChatTeardrop } from "@phosphor-icons/react";
-import { useState, useEffect, FormEvent } from "react";
+import { Cpu, TerminalWindow, Warning, Shield, Trash, Question, Plus, ListDashes, Archive, PuzzlePiece, GitCommit, GitPullRequest, Atom, Minus, Square, X, Copy, SidebarSimple, ChatTeardrop, CaretDown, CaretRight, SpinnerGap } from "@phosphor-icons/react";
+import { useState, useEffect, FormEvent, useMemo } from "react";
 import { Conversation, ConversationContent } from "@/components/ai-elements/conversation";
 import { Message, MessageContent, MessageResponse } from "@/components/ai-elements/message";
 import { Reasoning, ReasoningTrigger, ReasoningContent } from "@/components/ai-elements/reasoning";
@@ -34,6 +34,7 @@ import {
 import { Shimmer } from "@/components/ai-elements/shimmer";
 import { CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
 import { DiffViewer } from "@/components/ai-elements/diff-viewer";
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import Image from "next/image";
 
 type Block =
@@ -56,6 +57,112 @@ function ControlledTool({ b, isDone, children }: { b: any, isDone: boolean, chil
         <Tool open={open} onOpenChange={setOpen}>
             {children}
         </Tool>
+    );
+}
+
+function WorkGroup({ group, streaming, isLast, onApprove, onReject }: { group: any, streaming: boolean, isLast: boolean, onApprove: (id: string, callId: string) => void, onReject: (id: string, callId: string) => void }) {
+    const [open, setOpen] = useState(!group.isDone);
+
+    useEffect(() => {
+        if (group.isDone) {
+            setOpen(false);
+        } else {
+            setOpen(true);
+        }
+    }, [group.isDone]);
+
+    return (
+        <Message from="assistant">
+            <MessageContent>
+                <Collapsible open={open} onOpenChange={setOpen} className="mb-6 mt-2 rounded-lg border border-border/30 bg-card/30 overflow-hidden">
+                    <CollapsibleTrigger className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-white/5 transition-colors focus:outline-none">
+                        <div className="flex items-center gap-3">
+                            {!group.isDone ? (
+                                <SpinnerGap weight="bold" className="w-4 h-4 text-primary animate-spin" />
+                            ) : (
+                                <Atom weight="duotone" className="w-4 h-4 text-muted-foreground" />
+                            )}
+                            <span className="text-sm font-medium opacity-80">
+                                {group.isDone ? `Worked for ${(group.duration / 1000).toFixed(1)}s` : "Working..."}
+                            </span>
+                        </div>
+                        <div className="text-muted-foreground">
+                            {open ? <CaretDown weight="bold" className="w-4 h-4" /> : <CaretRight weight="bold" className="w-4 h-4" />}
+                        </div>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="px-5 pb-5 pt-1">
+                        <div className="flex flex-col gap-5 border-l-2 border-border/20 pl-4 py-1 max-w-full overflow-hidden mt-1">
+                            {group.blocks.map((b: any, idx: number) => {
+                                const isStreamingBlock = streaming && isLast && idx === group.blocks.length - 1;
+
+                                if (b.type === 'thinking') {
+                                    return (
+                                        <div key={b.id} className="relative w-full max-w-full overflow-hidden">
+                                            <Reasoning isStreaming={isStreamingBlock} duration={b.duration}>
+                                                <ReasoningTrigger />
+                                                <ReasoningContent className="font-mono text-sm relative">{b.text}</ReasoningContent>
+                                            </Reasoning>
+                                        </div>
+                                    );
+                                }
+
+                                if (b.type === 'tool-call') {
+                                    const isDone = b.call.status === 'done';
+                                    const lowerName = b.call.name.toLowerCase();
+                                    const showDiff = ['replacefilecontent', 'multireplacefilecontent', 'replace_file_content', 'multi_replace_file_content'].includes(lowerName);
+
+                                    return (
+                                        <div key={b.id} className="relative w-full max-w-full overflow-hidden mt-2 first:mt-0">
+                                            <ControlledTool b={b} isDone={isDone}>
+                                                <ToolHeader
+                                                    type="tool-invocation"
+                                                    state={isDone ? "output-available" : (!isDone && b.awaitConfirm ? "approval-requested" : "input-available")}
+                                                    title={b.call.name.replace(/_/g, ' ')}
+                                                    args={b.call.args}
+                                                    result={b.call.result}
+                                                />
+                                                <ToolContent>
+                                                    <ToolInput input={b.call.args} name={b.call.name.replace(/_/g, '')} />
+
+                                                    {showDiff && (
+                                                        <DiffViewer
+                                                            targetFile={b.call.args.TargetFile}
+                                                            targetContent={b.call.args.TargetContent}
+                                                            replacementContent={b.call.args.ReplacementContent}
+                                                            patch={b.call.result?.diff}
+                                                        />
+                                                    )}
+
+                                                    {!isDone && b.awaitConfirm && (
+                                                        <div className="flex items-center gap-2 mt-4 pt-4 border-t border-border/50">
+                                                            <button
+                                                                onClick={() => onApprove(b.id, b.call.id)}
+                                                                className="px-3 py-1.5 text-xs font-medium rounded bg-green-500/20 text-green-500 hover:bg-green-500/30 transition-colors"
+                                                            >
+                                                                Approve & Run
+                                                            </button>
+                                                            <button
+                                                                onClick={() => onReject(b.id, b.call.id)}
+                                                                className="px-3 py-1.5 text-xs font-medium rounded bg-destructive/20 text-destructive hover:bg-destructive/30 transition-colors"
+                                                            >
+                                                                Reject
+                                                            </button>
+                                                        </div>
+                                                    )}
+
+                                                    {isDone && b.call.result && <ToolOutput output={b.call.result} errorText={b.call.result.error || ""} name={b.call.name.replace(/_/g, '')} />}
+                                                </ToolContent>
+                                            </ControlledTool>
+                                        </div>
+                                    );
+                                }
+                                return null;
+                            })}
+                        </div>
+                    </CollapsibleContent>
+                </Collapsible>
+            </MessageContent>
+        </Message>
     );
 }
 
@@ -335,6 +442,69 @@ export default function Home() {
         }
     };
 
+    const groupedBlocks = useMemo(() => {
+        const groups: ({ type: 'single', block: Block } | { type: 'work', id: string, blocks: Block[], isDone: boolean, duration: number })[] = [];
+        let currentWorkGroup: { type: 'work', id: string, blocks: Block[], duration: number } | null = null;
+
+        for (let i = 0; i < blocks.length; i++) {
+            const b = blocks[i];
+            if (b.type === 'thinking' || b.type === 'tool-call') {
+                if (!currentWorkGroup) {
+                    currentWorkGroup = { type: 'work', id: `work-${b.id}`, blocks: [], duration: 0 };
+                }
+                currentWorkGroup.blocks.push(b);
+                if (b.type === 'thinking' && (b as any).duration) {
+                    currentWorkGroup.duration += (b as any).duration;
+                }
+            } else {
+                if (currentWorkGroup) {
+                    groups.push({ ...currentWorkGroup, isDone: true });
+                    currentWorkGroup = null;
+                }
+                groups.push({ type: 'single', block: b });
+            }
+        }
+
+        if (currentWorkGroup) {
+            groups.push({ ...currentWorkGroup, isDone: !streaming });
+        }
+
+        return groups;
+    }, [blocks, streaming]);
+
+    const handleApprove = (blockId: string, callId: string) => {
+        setBlocks(prev => {
+            const next = [...prev];
+            const blockIdx = next.findIndex(x => x.id === blockId);
+            if (blockIdx >= 0) {
+                next[blockIdx] = { ...next[blockIdx], awaitConfirm: false } as any;
+            }
+            return next;
+        });
+        fetch(`${API_URL}/confirm`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ toolCallId: callId, approve: true })
+        });
+    };
+
+    const handleReject = (blockId: string, callId: string) => {
+        setBlocks(prev => {
+            const next = [...prev];
+            const blockIdx = next.findIndex(x => x.id === blockId);
+            if (blockIdx >= 0) {
+                next[blockIdx] = { ...next[blockIdx], awaitConfirm: false } as any;
+            }
+            return next;
+        });
+        fetch(`${API_URL}/confirm`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ toolCallId: callId, approve: false })
+        });
+    };
+
+
     if (status === 'connecting') {
         return (
             <main className="flex min-h-screen flex-col items-center justify-center p-24 bg-background">
@@ -471,128 +641,53 @@ export default function Home() {
                                         Session initialized. Awaiting input.
                                     </div>
                                 ) : (
-                                    blocks.map((b, idx) => {
-                                        const isStreamingBlock = streaming && idx === blocks.length - 1;
+                                    groupedBlocks.map((group, groupIdx) => {
+                                        const isLast = groupIdx === groupedBlocks.length - 1;
 
-                                        if (b.type === 'user') {
+                                        if (group.type === 'single') {
+                                            const b = group.block;
+                                            if (b.type === 'user') {
+                                                return (
+                                                    <Message key={b.id} from="user">
+                                                        <MessageContent className="whitespace-pre-wrap font-sans text-sm pb-8">
+                                                            {b.text}
+                                                        </MessageContent>
+                                                    </Message>
+                                                );
+                                            }
+
+                                            if (b.type === 'assistant') {
+                                                const isStreamingBlock = streaming && isLast && groupIdx === groupedBlocks.length - 1;
+                                                return (
+                                                    <Message key={b.id} from="assistant">
+                                                        <MessageContent>
+                                                            <MessageResponse className="font-sans text-sm text-foreground opacity-90 leading-relaxed pb-6">
+                                                                {b.text || (isStreamingBlock ? '' : '<empty response>')}
+                                                            </MessageResponse>
+                                                        </MessageContent>
+                                                    </Message>
+                                                );
+                                            }
+                                        }
+
+                                        if (group.type === 'work') {
                                             return (
-                                                <Message key={b.id} from="user">
-                                                    <MessageContent className="whitespace-pre-wrap font-sans text-sm pb-8">
-                                                        {b.text}
-                                                    </MessageContent>
-                                                </Message>
+                                                <WorkGroup
+                                                    key={group.id}
+                                                    group={group}
+                                                    streaming={streaming}
+                                                    isLast={isLast}
+                                                    onApprove={handleApprove}
+                                                    onReject={handleReject}
+                                                />
                                             );
                                         }
 
-                                        if (b.type === 'assistant') {
-                                            return (
-                                                <Message key={b.id} from="assistant">
-                                                    <MessageContent>
-                                                        <MessageResponse className="font-sans text-sm text-foreground opacity-90 leading-relaxed pb-6">
-                                                            {b.text || '<empty response>'}
-                                                        </MessageResponse>
-                                                    </MessageContent>
-                                                </Message>
-                                            );
-                                        }
-
-                                        if (b.type === 'thinking') {
-                                            return (
-                                                <Message key={b.id} from="assistant">
-                                                    <MessageContent>
-                                                        <Reasoning isStreaming={isStreamingBlock} duration={(b as any).duration}>
-                                                            <ReasoningTrigger />
-                                                            <ReasoningContent className="font-mono text-sm relative">{b.text}</ReasoningContent>
-                                                        </Reasoning>
-                                                    </MessageContent>
-                                                </Message>
-                                            );
-                                        }
-
-                                        if (b.type === 'tool-call') {
-                                            const isDone = b.call.status === 'done';
-                                            const lowerName = b.call.name.toLowerCase();
-                                            const showDiff = ['replacefilecontent', 'multireplacefilecontent', 'replace_file_content', 'multi_replace_file_content'].includes(lowerName);
-                                            return (
-                                                <Message key={b.id} from="assistant">
-                                                    <MessageContent>
-                                                        <ControlledTool b={b} isDone={isDone}>
-                                                            <ToolHeader
-                                                                type="tool-invocation"
-                                                                state={isDone ? "output-available" : (!isDone && b.awaitConfirm ? "approval-requested" : "input-available")}
-                                                                title={b.call.name.replace(/_/g, ' ')}
-                                                                args={b.call.args}
-                                                                result={b.call.result}
-                                                            />
-                                                                <ToolContent>
-                                                                    <ToolInput input={b.call.args} name={b.call.name.replace(/_/g, '')} />
-
-                                                                {showDiff && (
-                                                                    <DiffViewer
-                                                                        targetFile={b.call.args.TargetFile}
-                                                                        targetContent={b.call.args.TargetContent}
-                                                                        replacementContent={b.call.args.ReplacementContent}
-                                                                        patch={b.call.result?.diff}
-                                                                    />
-                                                                )}
-
-                                                                {!isDone && b.awaitConfirm && (
-                                                                    <div className="flex items-center gap-2 mt-4 pt-4 border-t border-border/50">
-                                                                        <button
-                                                                            onClick={() => {
-                                                                                setBlocks(prev => {
-                                                                                    const next = [...prev];
-                                                                                    const blockIdx = next.findIndex(x => x.id === b.id);
-                                                                                    if (blockIdx >= 0) {
-                                                                                        next[blockIdx] = { ...next[blockIdx], awaitConfirm: false } as typeof b;
-                                                                                    }
-                                                                                    return next;
-                                                                                });
-                                                                                fetch(`${API_URL}/confirm`, {
-                                                                                    method: 'POST',
-                                                                                    headers: { 'Content-Type': 'application/json' },
-                                                                                    body: JSON.stringify({ toolCallId: b.call.id, approve: true })
-                                                                                });
-                                                                            }}
-                                                                            className="px-3 py-1.5 text-xs font-medium rounded bg-green-500/20 text-green-500 hover:bg-green-500/30 transition-colors"
-                                                                        >
-                                                                            Approve & Run
-                                                                        </button>
-                                                                        <button
-                                                                            onClick={() => {
-                                                                                setBlocks(prev => {
-                                                                                    const next = [...prev];
-                                                                                    const blockIdx = next.findIndex(x => x.id === b.id);
-                                                                                    if (blockIdx >= 0) {
-                                                                                        next[blockIdx] = { ...next[blockIdx], awaitConfirm: false } as typeof b;
-                                                                                    }
-                                                                                    return next;
-                                                                                });
-                                                                                fetch(`${API_URL}/confirm`, {
-                                                                                    method: 'POST',
-                                                                                    headers: { 'Content-Type': 'application/json' },
-                                                                                    body: JSON.stringify({ toolCallId: b.call.id, approve: false })
-                                                                                });
-                                                                            }}
-                                                                            className="px-3 py-1.5 text-xs font-medium rounded bg-destructive/20 text-destructive hover:bg-destructive/30 transition-colors"
-                                                                        >
-                                                                            Reject
-                                                                        </button>
-                                                                    </div>
-                                                                )}
-
-                                                                {isDone && b.call.result && <ToolOutput output={b.call.result} errorText={b.call.result.error || ""} name={b.call.name.replace(/_/g, '')} />}
-                                                            </ToolContent>
-                                                        </ControlledTool>
-                                                    </MessageContent>
-                                                </Message>
-                                            );
-                                        }
                                         return null;
                                     })
                                 )}
 
-                                {streaming && (
+                                {streaming && (groupedBlocks.length === 0 || (groupedBlocks[groupedBlocks.length - 1].type === 'single' && groupedBlocks[groupedBlocks.length - 1].block.type === 'user')) && (
                                     <Message from="assistant">
                                         <MessageContent>
                                             <Shimmer>Working...</Shimmer>
