@@ -8,8 +8,8 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
-import type { LucideIcon } from "lucide-react";
-import { BrainIcon, ChevronDownIcon, DotIcon } from "lucide-react";
+import type { LucideIcon } from "@phosphor-icons/react";
+import { Brain, CaretDown, Circle } from "@phosphor-icons/react";
 import type { ComponentProps, ReactNode } from "react";
 import { createContext, memo, useContext, useMemo } from "react";
 
@@ -85,11 +85,11 @@ export const ChainOfThoughtHeader = memo(
           )}
           {...props}
         >
-          <BrainIcon className="size-4" />
+          <Brain className="size-4" />
           <span className="flex-1 text-left">
             {children ?? "Chain of Thought"}
           </span>
-          <ChevronDownIcon
+          <CaretDown
             className={cn(
               "size-4 transition-transform",
               isOpen ? "rotate-180" : "rotate-0"
@@ -117,7 +117,7 @@ const stepStatusStyles = {
 export const ChainOfThoughtStep = memo(
   ({
     className,
-    icon: Icon = DotIcon,
+    icon: Icon = Circle,
     label,
     description,
     status = "complete",

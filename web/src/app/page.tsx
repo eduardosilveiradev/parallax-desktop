@@ -1,6 +1,6 @@
 "use client";
 
-import { Cpu, TerminalWindow, Warning, Trash, Question, Plus, ListDashes, Archive, PuzzlePiece, GitCommit, GitPullRequest, Atom, Minus, Square, X, Copy, SidebarSimple, ChatTeardrop } from "@phosphor-icons/react";
+import { Cpu, TerminalWindow, Warning, Shield, Trash, Question, Plus, ListDashes, Archive, PuzzlePiece, GitCommit, GitPullRequest, Atom, Minus, Square, X, Copy, SidebarSimple, ChatTeardrop } from "@phosphor-icons/react";
 import { useState, useEffect, FormEvent } from "react";
 import { Conversation, ConversationContent } from "@/components/ai-elements/conversation";
 import { Message, MessageContent, MessageResponse } from "@/components/ai-elements/message";
@@ -33,15 +33,31 @@ import {
 } from "@/components/ai-elements/model-selector";
 import { Shimmer } from "@/components/ai-elements/shimmer";
 import { CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
+import { DiffViewer } from "@/components/ai-elements/diff-viewer";
 import Image from "next/image";
 
 type Block =
     | { type: 'user', id: string, text: string }
     | { type: 'assistant', id: string, text: string }
     | { type: 'thinking', id: string, text: string }
-    | { type: 'tool-call', id: string, call: { id: string, name: string, args: any, status: 'calling' | 'done', result?: any } };
+    | { type: 'tool-call', id: string, awaitConfirm?: boolean, call: { id: string, name: string, args: any, status: 'calling' | 'done', result?: any } };
 
 const API_URL = "http://localhost:3555";
+
+function ControlledTool({ b, isDone, children }: { b: any, isDone: boolean, children: React.ReactNode }) {
+    const isAwaiting = !isDone && !!b.awaitConfirm;
+    const [open, setOpen] = useState(isAwaiting);
+
+    useEffect(() => {
+        setOpen(isAwaiting);
+    }, [isAwaiting]);
+
+    return (
+        <Tool open={open} onOpenChange={setOpen}>
+            {children}
+        </Tool>
+    );
+}
 
 export default function Home() {
     const [status, setStatus] = useState<'connecting' | 'connected' | 'error'>('connecting');
@@ -50,13 +66,14 @@ export default function Home() {
     const [input, setInput] = useState("");
     const [streaming, setStreaming] = useState(false);
     const [abortController, setAbortController] = useState<AbortController | null>(null);
-    const [availableModels, setAvailableModels] = useState<{ id: string, label: string, group: string }[]>([]);
+    const [availableModels, setAvailableModels] = useState<{ id: string, label: string, provider: string, group: string }[]>([]);
     const [selectedModel, setSelectedModel] = useState<{ id: string, label: string, provider: string }>({
         id: 'gemini:gemini-3-flash-preview',
         label: 'Gemini 3 Flash',
         provider: 'google'
     });
 
+    const [yoloMode, setYoloMode] = useState(false);
     const [modelSelectorOpen, setModelSelectorOpen] = useState(false);
     const [globalCommandOpen, setGlobalCommandOpen] = useState(false);
     const [slashCommandValue, setSlashCommandValue] = useState("");
@@ -97,11 +114,11 @@ export default function Home() {
                 const params = new URLSearchParams(window.location.search);
                 const urlSession = params.get('session');
                 const ping = await fetch(`${API_URL}/ping`).then(r => r.json());
-                
+
                 const initialSessionId = urlSession || ping.sessionId;
                 setSessionId(initialSessionId);
                 setStatus('connected');
-                
+
                 if (typeof window !== 'undefined') {
                     window.history.replaceState(null, '', `?session=${initialSessionId}`);
                 }
@@ -223,7 +240,7 @@ export default function Home() {
             const res = await fetch(`${API_URL}/prompt`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ prompt: sendUserText, sessionId, model: selectedModel.id }),
+                body: JSON.stringify({ prompt: sendUserText, sessionId, model: selectedModel.id, yolo: yoloMode }),
                 signal: controller.signal
             });
 
@@ -264,7 +281,10 @@ export default function Home() {
                             if (data.type === 'text-delta') {
                                 const idx = newBlocks.findIndex(b => b.id === data.id);
                                 if (idx >= 0) {
-                                    newBlocks[idx] = { ...newBlocks[idx], text: (newBlocks[idx] as any).text + (data.text || '') };
+                                    const b = newBlocks[idx];
+                                    if (b.type === 'assistant') {
+                                        newBlocks[idx] = { ...b, text: b.text + (data.text || '') };
+                                    }
                                 } else {
                                     newBlocks.push({ type: 'assistant', id: data.id, text: data.text || '' });
                                 }
@@ -272,7 +292,10 @@ export default function Home() {
                             else if (data.type === 'thinking-delta') {
                                 const idx = newBlocks.findIndex(b => b.id === data.id);
                                 if (idx >= 0) {
-                                    newBlocks[idx] = { ...newBlocks[idx], text: (newBlocks[idx] as any).text + (data.text || '') };
+                                    const b = newBlocks[idx];
+                                    if (b.type === 'thinking') {
+                                        newBlocks[idx] = { ...b, text: b.text + (data.text || '') };
+                                    }
                                 } else {
                                     newBlocks.push({ type: 'thinking', id: data.id, text: data.text || '' });
                                 }
@@ -281,6 +304,7 @@ export default function Home() {
                                 newBlocks.push({
                                     type: 'tool-call',
                                     id: data.id,
+                                    awaitConfirm: data.awaitConfirm,
                                     call: { id: data.id, name: data.name, args: data.input, status: 'calling' }
                                 });
                             }
@@ -441,7 +465,7 @@ export default function Home() {
                     {/* Main Feed using AI Elements */}
                     <div className="flex-1 overflow-hidden max-w-3xl w-full mx-auto">
                         <Conversation className="h-full">
-                            <ConversationContent className="px-6 py-8">
+                            <ConversationContent className="px-6 py-8 gap-1">
                                 {blocks.length === 0 ? (
                                     <div className="py-24 text-center text-muted-foreground font-mono text-sm">
                                         Session initialized. Awaiting input.
@@ -487,20 +511,79 @@ export default function Home() {
 
                                         if (b.type === 'tool-call') {
                                             const isDone = b.call.status === 'done';
+                                            const lowerName = b.call.name.toLowerCase();
+                                            const showDiff = ['replacefilecontent', 'multireplacefilecontent', 'replace_file_content', 'multi_replace_file_content'].includes(lowerName);
                                             return (
                                                 <Message key={b.id} from="assistant">
                                                     <MessageContent>
-                                                        <Tool>
+                                                        <ControlledTool b={b} isDone={isDone}>
                                                             <ToolHeader
                                                                 type="tool-invocation"
-                                                                state={isDone ? "output-available" : "input-available"}
+                                                                state={isDone ? "output-available" : (!isDone && b.awaitConfirm ? "approval-requested" : "input-available")}
                                                                 title={b.call.name.replace(/_/g, ' ')}
+                                                                args={b.call.args}
+                                                                result={b.call.result}
                                                             />
-                                                            <ToolContent>
-                                                                <ToolInput input={b.call.args} />
-                                                                {isDone && b.call.result && <ToolOutput output={b.call.result} errorText="" />}
+                                                                <ToolContent>
+                                                                    <ToolInput input={b.call.args} name={b.call.name.replace(/_/g, '')} />
+
+                                                                {showDiff && (
+                                                                    <DiffViewer
+                                                                        targetFile={b.call.args.TargetFile}
+                                                                        targetContent={b.call.args.TargetContent}
+                                                                        replacementContent={b.call.args.ReplacementContent}
+                                                                        patch={b.call.result?.diff}
+                                                                    />
+                                                                )}
+
+                                                                {!isDone && b.awaitConfirm && (
+                                                                    <div className="flex items-center gap-2 mt-4 pt-4 border-t border-border/50">
+                                                                        <button
+                                                                            onClick={() => {
+                                                                                setBlocks(prev => {
+                                                                                    const next = [...prev];
+                                                                                    const blockIdx = next.findIndex(x => x.id === b.id);
+                                                                                    if (blockIdx >= 0) {
+                                                                                        next[blockIdx] = { ...next[blockIdx], awaitConfirm: false } as typeof b;
+                                                                                    }
+                                                                                    return next;
+                                                                                });
+                                                                                fetch(`${API_URL}/confirm`, {
+                                                                                    method: 'POST',
+                                                                                    headers: { 'Content-Type': 'application/json' },
+                                                                                    body: JSON.stringify({ toolCallId: b.call.id, approve: true })
+                                                                                });
+                                                                            }}
+                                                                            className="px-3 py-1.5 text-xs font-medium rounded bg-green-500/20 text-green-500 hover:bg-green-500/30 transition-colors"
+                                                                        >
+                                                                            Approve & Run
+                                                                        </button>
+                                                                        <button
+                                                                            onClick={() => {
+                                                                                setBlocks(prev => {
+                                                                                    const next = [...prev];
+                                                                                    const blockIdx = next.findIndex(x => x.id === b.id);
+                                                                                    if (blockIdx >= 0) {
+                                                                                        next[blockIdx] = { ...next[blockIdx], awaitConfirm: false } as typeof b;
+                                                                                    }
+                                                                                    return next;
+                                                                                });
+                                                                                fetch(`${API_URL}/confirm`, {
+                                                                                    method: 'POST',
+                                                                                    headers: { 'Content-Type': 'application/json' },
+                                                                                    body: JSON.stringify({ toolCallId: b.call.id, approve: false })
+                                                                                });
+                                                                            }}
+                                                                            className="px-3 py-1.5 text-xs font-medium rounded bg-destructive/20 text-destructive hover:bg-destructive/30 transition-colors"
+                                                                        >
+                                                                            Reject
+                                                                        </button>
+                                                                    </div>
+                                                                )}
+
+                                                                {isDone && b.call.result && <ToolOutput output={b.call.result} errorText={b.call.result.error || ""} name={b.call.name.replace(/_/g, '')} />}
                                                             </ToolContent>
-                                                        </Tool>
+                                                        </ControlledTool>
                                                     </MessageContent>
                                                 </Message>
                                             );
@@ -663,6 +746,14 @@ export default function Home() {
                                                 </ModelSelectorList>
                                             </ModelSelectorContent>
                                         </ModelSelector>
+                                        <button
+                                            onClick={() => setYoloMode(v => !v)}
+                                            title={yoloMode ? "YOLO Mode Active: Agent will auto-execute any tools" : "Safe Mode Active: You must confirm tool executions"}
+                                            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold uppercase border hover:bg-white/5 rounded-md transition-colors cursor-pointer outline-none focus:ring-1 focus:ring-ring ${yoloMode ? 'border-destructive/50 text-destructive bg-destructive/5' : 'border-border/40 text-muted-foreground'}`}
+                                        >
+                                            <span className="opacity-70">{yoloMode ? <Warning weight="bold" className="w-3.5 h-3.5" /> : <Shield weight="bold" className="w-3.5 h-3.5 shrink-0" />}</span>
+                                            <span>YOLO</span>
+                                        </button>
                                     </PromptInputTools>
                                     <PromptInputSubmit
                                         disabled={streaming ? false : !input.trim()}

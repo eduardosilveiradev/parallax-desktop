@@ -2,7 +2,7 @@
 
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { ArrowRightIcon, MinusIcon, PackageIcon, PlusIcon } from "lucide-react";
+import { ArrowRight, Minus, Package, Plus } from "@phosphor-icons/react";
 import type { HTMLAttributes } from "react";
 import { createContext, useContext, useMemo } from "react";
 
@@ -45,7 +45,7 @@ export const PackageInfoName = ({
 
   return (
     <div className={cn("flex items-center gap-2", className)} {...props}>
-      <PackageIcon className="size-4 text-muted-foreground" />
+      <Package className="size-4 text-muted-foreground" />
       <span className="font-medium font-mono text-sm">{children ?? name}</span>
     </div>
   );
@@ -61,11 +61,11 @@ const changeTypeStyles: Record<ChangeType, string> = {
 };
 
 const changeTypeIcons: Record<ChangeType, React.ReactNode> = {
-  added: <PlusIcon className="size-3" />,
-  major: <ArrowRightIcon className="size-3" />,
-  minor: <ArrowRightIcon className="size-3" />,
-  patch: <ArrowRightIcon className="size-3" />,
-  removed: <MinusIcon className="size-3" />,
+  added: <Plus className="size-3" />,
+  major: <ArrowRight className="size-3" />,
+  minor: <ArrowRight className="size-3" />,
+  patch: <ArrowRight className="size-3" />,
+  removed: <Minus className="size-3" />,
 };
 
 export type PackageInfoChangeTypeProps = HTMLAttributes<HTMLDivElement>;
@@ -122,7 +122,7 @@ export const PackageInfoVersion = ({
         <>
           {currentVersion && <span>{currentVersion}</span>}
           {currentVersion && newVersion && (
-            <ArrowRightIcon className="size-3" />
+            <ArrowRight className="size-3" />
           )}
           {newVersion && (
             <span className="font-medium text-foreground">{newVersion}</span>
