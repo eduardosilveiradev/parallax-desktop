@@ -1,6 +1,6 @@
 "use client";
 
-import { Cpu, TerminalWindow, Warning, Shield, Trash, Question, Plus, ListDashes, Archive, PuzzlePiece, GitCommit, GitPullRequest, Atom, Minus, Square, X, Copy, SidebarSimple, ChatTeardrop, CaretDown, CaretRight, SpinnerGap } from "@phosphor-icons/react";
+import { Cpu, TerminalWindow, Warning, Shield, Trash, Question, Plus, ListDashes, Archive, PuzzlePiece, GitCommit, GitPullRequest, Atom, Minus, Square, X, Copy, SidebarSimple, ChatTeardrop, CaretDown, CaretRight, SpinnerGap, SpinnerIcon } from "@phosphor-icons/react";
 import { useState, useEffect, FormEvent, useMemo } from "react";
 import { Conversation, ConversationContent } from "@/components/ai-elements/conversation";
 import { Message, MessageContent, MessageResponse } from "@/components/ai-elements/message";
@@ -62,29 +62,40 @@ function ControlledTool({ b, isDone, children }: { b: any, isDone: boolean, chil
 
 function WorkGroup({ group, streaming, isLast, onApprove, onReject }: { group: any, streaming: boolean, isLast: boolean, onApprove: (id: string, callId: string) => void, onReject: (id: string, callId: string) => void }) {
     const [open, setOpen] = useState(!group.isDone);
+    const [seconds, setSeconds] = useState(0);
 
     useEffect(() => {
         if (group.isDone) {
+            setSeconds(group.duration);
             setOpen(false);
-        } else {
-            setOpen(true);
+            return;
         }
-    }, [group.isDone]);
+
+        setOpen(true);
+        const internalStart = Date.now();
+        const interval = setInterval(() => {
+            setSeconds((Date.now() - internalStart) / 1000);
+        }, 100);
+
+        return () => clearInterval(interval);
+    }, [group.isDone, group.duration]);
 
     return (
         <Message from="assistant">
             <MessageContent>
                 <Collapsible open={open} onOpenChange={setOpen} className="mb-6 mt-2 rounded-lg border border-border/30 bg-card/30 overflow-hidden">
                     <CollapsibleTrigger className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-white/5 transition-colors focus:outline-none">
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3 text-sm font-medium opacity-80">
                             {!group.isDone ? (
-                                <SpinnerGap weight="bold" className="w-4 h-4 text-primary animate-spin" />
+                                <SpinnerIcon weight="bold" className="w-4 h-4 text-primary animate-spin" />
                             ) : (
                                 <Atom weight="duotone" className="w-4 h-4 text-muted-foreground" />
                             )}
-                            <span className="text-sm font-medium opacity-80">
-                                {group.isDone ? `Worked for ${(group.duration / 1000).toFixed(1)}s` : "Working..."}
-                            </span>
+                            {group.isDone ? <span className="text-sm font-medium opacity-80">
+                                {`Worked for ${seconds.toFixed(1)}s`}
+                            </span> : <Shimmer>
+                                {`Working... ${seconds.toFixed(1)}s`}
+                            </Shimmer>}
                         </div>
                         <div className="text-muted-foreground">
                             {open ? <CaretDown weight="bold" className="w-4 h-4" /> : <CaretRight weight="bold" className="w-4 h-4" />}
