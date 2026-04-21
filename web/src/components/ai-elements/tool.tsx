@@ -29,6 +29,7 @@ import { isValidElement } from "react";
 import { CodeBlock } from "./code-block";
 import path from "path";
 import { BundledLanguage } from "shiki";
+import { Shimmer } from "./shimmer";
 
 export type ToolProps = ComponentProps<typeof Collapsible>;
 
@@ -253,7 +254,13 @@ export const ToolHeader = ({
             {...props}
         >
             <ToolIcon name={title || toolName || type || ''} className="size-4" />
-            <span>{getToolLabel(title || toolName || type || '', args, state.startsWith('output-') ? 'done' : 'calling', result)}</span>
+            {state.startsWith('output-') ? (
+                <span>{getToolLabel(title || toolName || type || '', args, 'done', result)}</span>
+            ) : (
+                <Shimmer>
+                    {getToolLabel(title || toolName || type || '', args, 'calling', result)}
+                </Shimmer>
+            )}
             {getStatusBadge(state)}
             <CaretDown className="size-4 transition-transform group-data-[state=open]:rotate-180" />
         </CollapsibleTrigger>

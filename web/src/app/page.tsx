@@ -1,6 +1,6 @@
 "use client";
 
-import { Cpu, TerminalWindow, Warning, Shield, Trash, Question, Plus, ListDashes, Archive, PuzzlePiece, GitCommit, GitPullRequest, Atom, Minus, Square, X, Copy, SidebarSimple, ChatTeardrop, CaretDown, CaretRight, SpinnerGap, SpinnerIcon, Strategy, Bug, Robot } from "@phosphor-icons/react";
+import { Cpu, TerminalWindow, Warning, Shield, Trash, Question, Plus, ListDashes, Archive, PuzzlePiece, GitCommit, GitPullRequest, Atom, Minus, Square, X, Copy, SidebarSimple, ChatTeardrop, CaretDown, CaretRight, SpinnerGap, SpinnerIcon, Strategy, Bug, Robot, CheckCircle, Circle } from "@phosphor-icons/react";
 import { useState, useEffect, FormEvent, useMemo } from "react";
 import { Conversation, ConversationContent } from "@/components/ai-elements/conversation";
 import { Message, MessageContent, MessageResponse } from "@/components/ai-elements/message";
@@ -40,11 +40,16 @@ import {
     DropdownMenuTrigger,
     DropdownMenuSeparator,
     DropdownMenuLabel,
+    DropdownMenuGroup,
 } from "@/components/ui/dropdown-menu";
 import { DiffViewer } from "@/components/ai-elements/diff-viewer";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { Plan, PlanHeader, PlanTitle, PlanDescription, PlanContent, PlanFooter, PlanTrigger } from "@/components/ai-elements/plan";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, CardAction } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 type Block =
     | { type: 'user', id: string, text: string }
@@ -69,7 +74,7 @@ function ControlledTool({ b, isDone, children }: { b: any, isDone: boolean, chil
     );
 }
 
-function WorkGroup({ group, streaming, isLast, onApprove, onReject }: { group: any, streaming: boolean, isLast: boolean, onApprove: (id: string, callId: string) => void, onReject: (id: string, callId: string) => void }) {
+function WorkGroup({ group, streaming, isLast, onApprove, onReject, onSubmit }: { group: any, streaming: boolean, isLast: boolean, onApprove: (id: string, callId: string) => void, onReject: (id: string, callId: string) => void, onSubmit: (text: string) => void }) {
     const [open, setOpen] = useState(!group.isDone);
     const [seconds, setSeconds] = useState(0);
 
@@ -154,68 +159,6 @@ function WorkGroup({ group, streaming, isLast, onApprove, onReject }: { group: a
                                                         />
                                                     )}
 
-                                                    {isDone && isCreatePlan && b.call.result?.artifactId && (
-                                                        <Plan className="mt-3">
-                                                            <PlanHeader>
-                                                                <div className="flex-1">
-                                                                    <PlanTitle>Implementation Plan</PlanTitle>
-                                                                    <PlanDescription>
-                                                                        {b.call.args.name || "System Plan"}
-                                                                    </PlanDescription>
-                                                                </div>
-                                                                <PlanTrigger />
-                                                            </PlanHeader>
-                                                            <PlanContent>
-                                                                <div className="space-y-4">
-                                                                    {b.call.args.overview && (
-                                                                        <div>
-                                                                            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Overview</h4>
-                                                                            <p className="text-sm">{b.call.args.overview}</p>
-                                                                        </div>
-                                                                    )}
-                                                                    {b.call.args.plan && (
-                                                                        <div>
-                                                                            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Strategy</h4>
-                                                                            <div className="text-sm whitespace-pre-wrap">{b.call.args.plan}</div>
-                                                                        </div>
-                                                                    )}
-                                                                    {b.call.args.todos && Array.isArray(b.call.args.todos) && (
-                                                                        <div>
-                                                                            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Tasks</h4>
-                                                                            <div className="space-y-1.5">
-                                                                                {b.call.args.todos.map((t: any) => (
-                                                                                    <div key={t.id} className="flex items-center gap-2 text-sm">
-                                                                                        <div className="w-4 h-4 rounded border border-border/50 shrink-0" />
-                                                                                        <span className="opacity-80">{t.content}</span>
-                                                                                    </div>
-                                                                                ))}
-                                                                            </div>
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                            </PlanContent>
-                                                            <PlanFooter>
-                                                                <div className="flex flex-col gap-1 w-full">
-                                                                    <div className="text-[10px] text-muted-foreground font-mono">
-                                                                        Artifact: {b.call.result.artifactId}
-                                                                    </div>
-                                                                    <div className="flex items-center gap-2 mt-2">
-                                                                        <button
-                                                                            onClick={async () => {
-                                                                                try {
-                                                                                    await navigator.clipboard.writeText(String(b.call.result.markdown));
-                                                                                } catch { }
-                                                                            }}
-                                                                            className="px-3 py-1.5 text-xs font-medium rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
-                                                                        >
-                                                                            Copy Markdown
-                                                                        </button>
-                                                                    </div>
-                                                                </div>
-                                                            </PlanFooter>
-                                                        </Plan>
-                                                    )}
-
                                                     {!isDone && b.awaitConfirm && (
                                                         <div className="flex items-center gap-2 mt-4 pt-4 border-t border-border/50">
                                                             <button
@@ -271,6 +214,7 @@ export default function Home() {
     const [availableSessions, setAvailableSessions] = useState<{ id: string, mtime: number, messageCount: number, lastMessage?: string }[]>([]);
     const [isMaximized, setIsMaximized] = useState(false);
     const [sidebarOpen, setSidebarOpen] = useState(true);
+    const [todos, setTodos] = useState<{ id: string, content: string, status: 'pending' | 'completed' }[]>([]);
     const [rateLimit, setRateLimit] = useState<null | { message: string; untilMs: number; attempt?: number; maxAttempts?: number }>(null);
     const [rateLimitNow, setRateLimitNow] = useState(0);
 
@@ -343,6 +287,9 @@ export default function Home() {
                 if (hist.mode) {
                     setMode(hist.mode);
                 }
+                if (hist.todos) {
+                    setTodos(hist.todos);
+                }
 
                 try {
                     const models = await fetch(`${API_URL}/models`).then(r => r.json());
@@ -371,6 +318,7 @@ export default function Home() {
         const hist = await fetch(`${API_URL}/history/${id}`).then(r => r.json());
         setBlocks(hist.blocks || []);
         if (hist.mode) setMode(hist.mode);
+        if (hist.todos) setTodos(hist.todos);
         if (typeof window !== 'undefined') {
             window.history.replaceState(null, '', `?session=${id}`);
         }
@@ -442,6 +390,12 @@ export default function Home() {
             setSelectedModel({ id: 'gemini:gemini-3.1-pro-preview', label: 'Gemini 3.1 Pro', provider: 'google' });
         } else if (cmd === '/skills' || cmd === '/skills-install') {
             sendUserText = `CRITICAL INSTRUCTION: List the available skills and ask me which one to install using the skill command.`;
+        } else if (cmd === '/mode') {
+            const requestedMode = prompt.split(' ')[1]?.toLowerCase();
+            if (['agent', 'plan', 'debug'].includes(requestedMode)) {
+                setMode(requestedMode as any);
+            }
+            return; // Early return for mode command, just update local state
         }
 
         setInput("");
@@ -457,7 +411,7 @@ export default function Home() {
             const res = await fetch(`${API_URL}/prompt`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ prompt: sendUserText, sessionId, model: selectedModel.id, yolo: yoloMode }),
+                body: JSON.stringify({ prompt: sendUserText, sessionId, model: selectedModel.id, yolo: yoloMode, mode: mode }),
                 signal: controller.signal
             });
 
@@ -546,6 +500,9 @@ export default function Home() {
                             }
                             else if (data.type === 'mode-change') {
                                 setMode(data.mode);
+                            }
+                            else if (data.type === 'done') {
+                                if (data.todos) setTodos(data.todos);
                             }
                             else if (data.type === 'error') {
                                 const msg = String(data.message || 'Unknown error');
@@ -680,17 +637,11 @@ export default function Home() {
                     </button>
                     <div className="flex items-center gap-3">
                         <Image loading="lazy" src="/logo.png" alt="Parallax" width={24} height={24} className="w-5 h-5 text-muted-foreground" />
-                        <h1 className="text-sm font-normal">Parallax Desktop</h1>
+                        <h1 className="text-md font-normal">Parallax</h1>
                     </div>
                 </div>
 
                 <div className="flex items-center gap-3 [-webkit-app-region:no-drag]">
-                    <div className="flex items-center gap-1.5 px-3 py-1.5 mr-2 rounded-full bg-muted/30 border border-border/20">
-                        {mode === 'agent' && <Robot weight="duotone" className="w-4 h-4 text-primary" />}
-                        {mode === 'plan' && <Strategy weight="duotone" className="w-4 h-4 text-amber-500" />}
-                        {mode === 'debug' && <Bug weight="duotone" className="w-4 h-4 text-destructive" />}
-                        <span className="text-[10px] font-bold uppercase tracking-wider opacity-80">{mode} mode</span>
-                    </div>
                     <button
                         onClick={() => (window as any).electronAPI?.windowMinimize()}
                         className="text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors p-1.5 rounded-md focus:outline-none"
@@ -801,12 +752,64 @@ export default function Home() {
 
                                             if (b.type === 'assistant') {
                                                 const isStreamingBlock = streaming && isLast && groupIdx === groupedBlocks.length - 1;
+
+                                                // Find if there's an associated plan in the current conversation turn
+                                                const previousBlocks = blocks.slice(0, blocks.indexOf(b));
+                                                const lastUserIdx = previousBlocks.map(x => x.type).lastIndexOf('user');
+                                                const currentTurnPlan = previousBlocks.slice(lastUserIdx + 1).find(x => x.type === 'tool-call' && x.call.name.toLowerCase() === 'createplan' && x.call.status === 'done') as any;
+
                                                 return (
                                                     <Message key={b.id} from="assistant">
                                                         <MessageContent>
                                                             <MessageResponse className="font-sans text-sm text-foreground opacity-90 leading-relaxed pb-6">
                                                                 {b.text || (isStreamingBlock ? '' : '<empty response>')}
                                                             </MessageResponse>
+
+                                                            {currentTurnPlan && (
+                                                                <Plan className="my-2 border-border/40 overflow-hidden">
+                                                                    <PlanHeader className="">
+                                                                        <div className="flex items-center gap-3">
+                                                                            <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                                                                                <Strategy weight="duotone" className="w-4 h-4" />
+                                                                            </div>
+                                                                            <div className="flex-1">
+                                                                                <PlanTitle className="text-sm font-bold tracking-tight">Active Strategic Plan</PlanTitle>
+                                                                                <PlanDescription className="text-[11px] opacity-70">
+                                                                                    {currentTurnPlan.call.args.name || "Implementation roadmap"}
+                                                                                </PlanDescription>
+                                                                            </div>
+                                                                        </div>
+                                                                        <PlanTrigger />
+                                                                    </PlanHeader>
+                                                                    <PlanContent className="pt-4 px-6 pb-6 border-t border-border/10">
+                                                                        <div className="space-y-5">
+                                                                            {currentTurnPlan.call.args.overview && (
+                                                                                <div className="space-y-1.5">
+                                                                                    <h4 className="text-[10px] font-black uppercase tracking-widest text-primary">Mission Overview</h4>
+                                                                                    <p className="text-sm leading-relaxed text-foreground/80">{currentTurnPlan.call.args.overview}</p>
+                                                                                </div>
+                                                                            )}
+                                                                            {currentTurnPlan.call.args.plan && (
+                                                                                <div className="space-y-1.5">
+                                                                                    <h4 className="text-[10px] font-black uppercase tracking-widest text-primary">Execution Strategy</h4>
+                                                                                    <div className="text-sm whitespace-pre-wrap leading-relaxed text-foreground/80 font-sans">{currentTurnPlan.call.args.plan}</div>
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                    </PlanContent>
+                                                                    <PlanFooter className="bg-card flex items-center justify-between py-3 px-6 border-t border-border/10">
+                                                                        <div className="text-[10px] font-mono text-muted-foreground/60">
+                                                                            ID: {currentTurnPlan.call.result.artifactId}
+                                                                        </div>
+                                                                        <Button
+                                                                            onClick={() => onSubmit("Confirming plan execution. Please start.")}
+                                                                        >
+                                                                            <PuzzlePiece weight="bold" className="w-3.5 h-3.5" />
+                                                                            Build
+                                                                        </Button>
+                                                                    </PlanFooter>
+                                                                </Plan>
+                                                            )}
                                                         </MessageContent>
                                                     </Message>
                                                 );
@@ -822,6 +825,7 @@ export default function Home() {
                                                     isLast={isLast}
                                                     onApprove={handleApprove}
                                                     onReject={handleReject}
+                                                    onSubmit={onSubmit}
                                                 />
                                             );
                                         }
@@ -852,6 +856,31 @@ export default function Home() {
                     {/* Input */}
                     <div className="shrink-0 p-6 bg-card/30 border-t border-border backdrop-blur-md relative z-10 w-full">
                         <div className="max-w-3xl mx-auto relative group">
+                            {todos.length > 0 && (
+                                <div className="mb-4 space-y-2.5 px-1">
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <div className="h-px flex-1 bg-border/40" />
+                                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">Session Tasks</span>
+                                        <div className="h-px flex-1 bg-border/40" />
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
+                                        {todos.map(t => (
+                                            <div key={t.id} className="flex items-start gap-2.5 text-xs group">
+                                                <div className="mt-0.5 shrink-0">
+                                                    {t.status === 'completed' ? (
+                                                        <CheckCircle weight="fill" className="w-4 h-4 text-green-500/80" />
+                                                    ) : (
+                                                        <Circle weight="bold" className="w-4 h-4 text-muted-foreground/30 group-hover:text-muted-foreground/60 transition-colors" />
+                                                    )}
+                                                </div>
+                                                <span className={`leading-relaxed transition-all ${t.status === 'completed' ? 'line-through text-muted-foreground/50 italic' : 'text-foreground/80'}`}>
+                                                    {t.content}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                             {rateLimit && (
                                 <div className="mb-3 rounded-lg border border-border/60 bg-destructive/5 p-3">
                                     <div className="flex items-center justify-between gap-3">
@@ -873,42 +902,42 @@ export default function Home() {
                                 </div>
                             )}
                             {pendingAskQuestion && (
-                                <div className="mb-3 rounded-lg border border-border/60 bg-card/40 backdrop-blur-md p-4">
-                                    <div className="flex items-center justify-between gap-4">
-                                        <div className="text-sm font-medium">
-                                            {pendingAskQuestion.call.args?.title || "Answer required"}
+                                <Card className="mb-4 shadow-xl shadow-black/20 overflow-hidden border-border/40">
+                                    <CardHeader className="border-b bg-muted/5 py-3">
+                                        <div className="flex items-center justify-between">
+                                            <CardTitle className="text-sm font-bold flex items-center gap-2">
+                                                <Question className="w-4 h-4 text-primary" />
+                                                {pendingAskQuestion.call.args?.title || "Clarification Required"}
+                                            </CardTitle>
+                                            <Badge variant="outline" className="text-[10px] uppercase font-mono tracking-tighter opacity-70">
+                                                Tool: AskQuestion
+                                            </Badge>
                                         </div>
-                                        <div className="text-xs text-muted-foreground font-mono">
-                                            Tool: AskQuestion
-                                        </div>
-                                    </div>
+                                    </CardHeader>
+                                    <CardContent className="py-5">
+                                        <div className="space-y-6">
+                                            {(pendingAskQuestion.call.args?.questions || []).map((q: any) => {
+                                                const allowMultiple = !!q.allow_multiple;
+                                                const current = askAnswers[q.id];
+                                                const currentSet = new Set(Array.isArray(current) ? current : current ? [String(current)] : []);
 
-                                    <div className="mt-4 space-y-4">
-                                        {(pendingAskQuestion.call.args?.questions || []).map((q: any) => {
-                                            const allowMultiple = !!q.allow_multiple;
-                                            const current = askAnswers[q.id];
-                                            const currentSet = new Set(Array.isArray(current) ? current : current ? [String(current)] : []);
-
-                                            return (
-                                                <div key={q.id} className="space-y-2">
-                                                    <div className="text-sm">{q.prompt}</div>
-                                                    <div className="flex flex-col gap-2">
-                                                        {(q.options || []).map((opt: any) => {
-                                                            const checked = currentSet.has(String(opt.id));
-                                                            return (
-                                                                <label key={opt.id} className="flex items-center gap-2 text-sm cursor-pointer select-none">
-                                                                    <input
-                                                                        type={allowMultiple ? "checkbox" : "radio"}
-                                                                        name={q.id}
-                                                                        checked={checked}
-                                                                        onChange={(e) => {
+                                                return (
+                                                    <div key={q.id} className="space-y-3">
+                                                        <div className="text-sm font-medium leading-none">{q.prompt}</div>
+                                                        <div className="flex flex-col gap-1.5">
+                                                            {(q.options || []).map((opt: any) => {
+                                                                const checked = currentSet.has(String(opt.id));
+                                                                return (
+                                                                    <div
+                                                                        key={opt.id}
+                                                                        onClick={() => {
                                                                             setAskAnswers((prev) => {
                                                                                 const next = { ...prev };
                                                                                 const prevVal = next[q.id];
                                                                                 const prevSet = new Set(Array.isArray(prevVal) ? prevVal : prevVal ? [String(prevVal)] : []);
                                                                                 const id = String(opt.id);
                                                                                 if (allowMultiple) {
-                                                                                    if (e.target.checked) prevSet.add(id);
+                                                                                    if (!checked) prevSet.add(id);
                                                                                     else prevSet.delete(id);
                                                                                     next[q.id] = Array.from(prevSet);
                                                                                 } else {
@@ -917,51 +946,68 @@ export default function Home() {
                                                                                 return next;
                                                                             });
                                                                         }}
-                                                                    />
-                                                                    <span className="text-muted-foreground">{opt.label}</span>
-                                                                </label>
-                                                            );
-                                                        })}
+                                                                        className={cn(
+                                                                            "flex items-center gap-3 px-3 py-2 text-sm rounded-lg cursor-pointer transition-all border border-transparent",
+                                                                            checked
+                                                                                ? "bg-primary/10 border-primary/20 text-primary ring-1 ring-primary/20"
+                                                                                : "bg-muted/5 hover:bg-muted/10 text-muted-foreground border-border/10"
+                                                                        )}
+                                                                    >
+                                                                        <div className={cn(
+                                                                            "size-4 rounded border flex items-center justify-center transition-all",
+                                                                            checked ? "bg-primary border-primary text-primary-foreground" : "border-border/60 bg-transparent",
+                                                                            !allowMultiple && "rounded-full"
+                                                                        )}>
+                                                                            {checked && <div className={cn("size-1.5 bg-current", !allowMultiple ? "rounded-full" : "rounded-sm")} />}
+                                                                        </div>
+                                                                        <span className="flex-1">{opt.label}</span>
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-
-                                    <div className="mt-4 flex items-center gap-2">
-                                        <button
-                                            className="px-3 py-1.5 text-xs font-medium rounded bg-primary/20 text-primary hover:bg-primary/30 transition-colors"
-                                            onClick={async () => {
-                                                const callId = pendingAskQuestion.call.id;
-                                                await fetch(`${API_URL}/tool-response`, {
-                                                    method: 'POST',
-                                                    headers: { 'Content-Type': 'application/json' },
-                                                    body: JSON.stringify({ toolCallId: callId, payload: { answers: askAnswers } })
-                                                });
-                                                setAskAnswers({});
-                                            }}
-                                        >
-                                            Submit Answers
-                                        </button>
-                                        <button
-                                            className="px-3 py-1.5 text-xs font-medium rounded bg-destructive/20 text-destructive hover:bg-destructive/30 transition-colors"
-                                            onClick={async () => {
-                                                const callId = pendingAskQuestion.call.id;
-                                                await fetch(`${API_URL}/tool-response`, {
-                                                    method: 'POST',
-                                                    headers: { 'Content-Type': 'application/json' },
-                                                    body: JSON.stringify({ toolCallId: callId, payload: { cancelled: true } })
-                                                });
-                                                setAskAnswers({});
-                                            }}
-                                        >
-                                            Cancel
-                                        </button>
-                                        <div className="ml-auto text-xs text-muted-foreground">
-                                            Chat is paused until you respond.
+                                                );
+                                            })}
                                         </div>
-                                    </div>
-                                </div>
+                                    </CardContent>
+                                    <CardFooter className="bg-muted/10 flex items-center justify-between py-3">
+                                        <div className="flex items-center gap-2">
+                                            <Button
+                                                size="sm"
+                                                onClick={async () => {
+                                                    const callId = pendingAskQuestion.call.id;
+                                                    await fetch(`${API_URL}/tool-response`, {
+                                                        method: 'POST',
+                                                        headers: { 'Content-Type': 'application/json' },
+                                                        body: JSON.stringify({ toolCallId: callId, payload: { answers: askAnswers } })
+                                                    });
+                                                    setAskAnswers({});
+                                                }}
+                                            >
+                                                Submit Answers
+                                            </Button>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={async () => {
+                                                    const callId = pendingAskQuestion.call.id;
+                                                    await fetch(`${API_URL}/tool-response`, {
+                                                        method: 'POST',
+                                                        headers: { 'Content-Type': 'application/json' },
+                                                        body: JSON.stringify({ toolCallId: callId, payload: { cancelled: true } })
+                                                    });
+                                                    setAskAnswers({});
+                                                }}
+                                            >
+                                                Cancel
+                                            </Button>
+                                        </div>
+                                        <div className="text-[10px] font-medium text-muted-foreground italic flex items-center gap-1.5">
+                                            <SpinnerGap className="size-3 animate-spin" />
+                                            Streaming paused
+                                        </div>
+                                    </CardFooter>
+                                </Card>
                             )}
 
                             {(() => {
@@ -1067,9 +1113,35 @@ export default function Home() {
                                 </PromptInputBody>
                                 <PromptInputFooter>
                                     <PromptInputTools>
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger className="flex items-center gap-2 px-3 py-1.5 border border-border/40 hover:bg-white/5 rounded-md transition-colors cursor-pointer outline-none">
+                                                {mode === 'agent' && <Robot weight="duotone" className="w-4 h-4 text-primary" />}
+                                                {mode === 'plan' && <Strategy weight="duotone" className="w-4 h-4 text-amber-500" />}
+                                                {mode === 'debug' && <Bug weight="duotone" className="w-4 h-4 text-destructive" />}
+                                                <span className="text-xs font-medium capitalize">{mode}</span>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="start" className="w-48">
+                                                <DropdownMenuGroup>
+                                                    <DropdownMenuLabel>Select Mode</DropdownMenuLabel>
+                                                    <DropdownMenuSeparator />
+                                                    {([
+                                                        { id: 'agent', label: 'Agent Mode', icon: Robot, color: 'text-primary' },
+                                                        { id: 'plan', label: 'Plan Mode', icon: Strategy, color: 'text-amber-500' },
+                                                        { id: 'debug', label: 'Debug Mode', icon: Bug, color: 'text-destructive' }
+                                                    ] as const).map((m) => {
+                                                        return (
+                                                            <DropdownMenuItem key={m.id} onSelect={() => setMode(m.id)} onClick={() => setMode(m.id)} className="gap-2">
+                                                                <m.icon weight="duotone" className={`w-4 h-4 ${m.color}`} />
+                                                                <span>{m.label}</span>
+                                                            </DropdownMenuItem>
+                                                        )
+                                                    })}
+                                                </DropdownMenuGroup>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
                                         <ModelSelector open={modelSelectorOpen} onOpenChange={setModelSelectorOpen}>
                                             <ModelSelectorTrigger className="flex items-center gap-2 px-3 py-1.5 border border-border/40 hover:bg-white/5 rounded-md transition-colors cursor-pointer outline-none max-w-50">
-                                                <ModelSelectorLogo provider={selectedModel.provider} />
+                                                <ModelSelectorLogo provider={selectedModel.provider.replace("ollama", "ollama-cloud")} />
                                                 <ModelSelectorName>{selectedModel.label}</ModelSelectorName>
                                             </ModelSelectorTrigger>
                                             <ModelSelectorContent title="Select Model" className="sm:max-w-106.25">
@@ -1085,16 +1157,15 @@ export default function Home() {
                                                     ).map(([group, models]) => (
                                                         <ModelSelectorGroup key={group} heading={group}>
                                                             {models.map(m => {
-                                                                const providerName = m.id.split(':')[0];
                                                                 return (
                                                                     <ModelSelectorItem
                                                                         key={m.id}
                                                                         onSelect={() => {
-                                                                            setSelectedModel({ id: m.id, label: m.label, provider: providerName });
+                                                                            setSelectedModel({ id: m.id, label: m.label, provider: m.provider });
                                                                             setModelSelectorOpen(false);
                                                                         }}
                                                                     >
-                                                                        <ModelSelectorLogo provider={providerName} className="mr-2" />
+                                                                        <ModelSelectorLogo provider={m.provider.replace("ollama", "ollama-cloud")} className="mr-2" />
                                                                         {m.label}
                                                                     </ModelSelectorItem>
                                                                 )
@@ -1104,30 +1175,7 @@ export default function Home() {
                                                 </ModelSelectorList>
                                             </ModelSelectorContent>
                                         </ModelSelector>
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger className="flex items-center gap-2 px-3 py-1.5 border border-border/40 hover:bg-white/5 rounded-md transition-colors cursor-pointer outline-none">
-                                                {mode === 'agent' && <Robot weight="duotone" className="w-4 h-4 text-primary" />}
-                                                {mode === 'plan' && <Strategy weight="duotone" className="w-4 h-4 text-amber-500" />}
-                                                {mode === 'debug' && <Bug weight="duotone" className="w-4 h-4 text-destructive" />}
-                                                <span className="text-xs font-medium capitalize">{mode}</span>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="start" className="w-48">
-                                                <DropdownMenuLabel>Select Mode</DropdownMenuLabel>
-                                                <DropdownMenuSeparator />
-                                                <DropdownMenuItem onSelect={() => onSubmit('/mode agent')} className="gap-2">
-                                                    <Robot weight="duotone" className="w-4 h-4 text-primary" />
-                                                    <span>Agent Mode</span>
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem onSelect={() => onSubmit('/mode plan')} className="gap-2">
-                                                    <Strategy weight="duotone" className="w-4 h-4 text-amber-500" />
-                                                    <span>Plan Mode</span>
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem onSelect={() => onSubmit('/mode debug')} className="gap-2">
-                                                    <Bug weight="duotone" className="w-4 h-4 text-destructive" />
-                                                    <span>Debug Mode</span>
-                                                </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
+
                                         <button
                                             onClick={() => setYoloMode(v => !v)}
                                             title={yoloMode ? "YOLO Mode Active: Agent will auto-execute any tools" : "Safe Mode Active: You must confirm tool executions"}
