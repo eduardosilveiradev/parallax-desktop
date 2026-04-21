@@ -1,10 +1,10 @@
 "use client";
 
-import { Cpu, TerminalWindow, Warning, Shield, Trash, Question, Plus, ListDashes, Archive, PuzzlePiece, GitCommit, GitPullRequest, Atom, Minus, Square, X, Copy, SidebarSimple, ChatTeardrop, CaretDown, CaretRight, SpinnerGap, SpinnerIcon, Strategy, Bug, Robot, CheckCircle, Circle } from "@phosphor-icons/react";
-import { useState, useEffect, FormEvent, useMemo } from "react";
+import { Cpu, TerminalWindow, Warning, Shield, Trash, Question, Plus, ListDashes, Archive, PuzzlePiece, GitCommit, GitPullRequest, Atom, Minus, Square, X, Copy, SidebarSimple, ChatTeardrop, Strategy, Bug, Robot, CheckCircle, Circle, CircleNotchIcon } from "@phosphor-icons/react";
+import { useState, useEffect, useMemo } from "react";
 import { Conversation, ConversationContent } from "@/components/ai-elements/conversation";
 import { Message, MessageContent, MessageResponse } from "@/components/ai-elements/message";
-import { Reasoning, ReasoningTrigger, ReasoningContent } from "@/components/ai-elements/reasoning";
+import { Reasoning, ReasoningContent } from "@/components/ai-elements/reasoning";
 import { Tool, ToolHeader, ToolContent, ToolInput, ToolOutput } from "@/components/ai-elements/tool";
 import {
     PromptInput,
@@ -43,10 +43,9 @@ import {
     DropdownMenuGroup,
 } from "@/components/ui/dropdown-menu";
 import { DiffViewer } from "@/components/ai-elements/diff-viewer";
-import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { Plan, PlanHeader, PlanTitle, PlanDescription, PlanContent, PlanFooter, PlanTrigger } from "@/components/ai-elements/plan";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, CardAction } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { ChainOfThought, ChainOfThoughtHeader, ChainOfThoughtContent, ChainOfThoughtStep } from "@/components/ai-elements/chain-of-thought";
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -97,96 +96,91 @@ function WorkGroup({ group, streaming, isLast, onApprove, onReject, onSubmit }: 
     return (
         <Message from="assistant" className="w-full max-w-none">
             <MessageContent className="w-full max-w-none">
-                <Collapsible open={open} onOpenChange={setOpen} className="mb-6 mt-2 rounded-lg border border-border/30 bg-card/30 overflow-hidden w-full">
-                    <CollapsibleTrigger className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-white/5 transition-colors focus:outline-none">
-                        <div className="flex items-center gap-3 text-sm font-medium opacity-80">
-                            {!group.isDone ? (
-                                <SpinnerIcon weight="bold" className="w-4 h-4 text-primary animate-spin" />
-                            ) : (
-                                <Atom weight="duotone" className="w-4 h-4 text-muted-foreground" />
-                            )}
-                            {group.isDone ? <span className="text-sm font-medium opacity-80">
+                <ChainOfThought open={open} onOpenChange={setOpen} className="mb-6 mt-2">
+                    <ChainOfThoughtHeader
+                        icon={!group.isDone ? (props: any) => <CircleNotchIcon {...props} className={cn(props.className, "animate-spin text-primary")} /> : Atom}
+                        className="px-4 py-2.5 rounded-lg border border-border/30 bg-card/30 hover:bg-white/5 transition-colors"
+                    >
+                        {group.isDone ? (
+                            <span className="text-sm font-medium opacity-80">
                                 {`Worked for ${seconds.toFixed(1)}s`}
-                            </span> : <Shimmer>
+                            </span>
+                        ) : (
+                            <Shimmer className="text-sm font-medium opacity-80">
                                 {`Working... ${seconds.toFixed(1)}s`}
-                            </Shimmer>}
-                        </div>
-                        <div className="text-muted-foreground">
-                            {open ? <CaretDown weight="bold" className="w-4 h-4" /> : <CaretRight weight="bold" className="w-4 h-4" />}
-                        </div>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent className="px-5 pb-5 pt-1 w-full">
-                        <div className="flex flex-col gap-5 border-l-2 border-border/20 pl-4 py-1 max-w-full overflow-hidden mt-1">
+                            </Shimmer>
+                        )}
+                    </ChainOfThoughtHeader>
+
+                    <ChainOfThoughtContent className="px-5 pb-5 pt-4 w-full ml-4 border-l border-border/20">
+                        <div className="flex flex-col gap-6">
                             {group.blocks.map((b: any, idx: number) => {
                                 const isStreamingBlock = streaming && isLast && idx === group.blocks.length - 1;
+                                const isThinking = b.type === 'thinking';
+                                const stepStatus = isStreamingBlock ? "active" : (b.type === 'tool-call' && b.call.status === 'calling' ? "active" : "complete");
 
-                                if (b.type === 'thinking') {
-                                    return (
-                                        <div key={b.id} className="relative w-full max-w-full overflow-hidden">
-                                            <Reasoning isStreaming={isStreamingBlock} duration={b.duration}>
-                                                <ReasoningTrigger />
-                                                <ReasoningContent className="font-mono text-sm relative">{b.text}</ReasoningContent>
+                                return (
+                                    <ChainOfThoughtStep
+                                        key={b.id}
+                                        status={stepStatus}
+                                        icon={isThinking ? Brain : TerminalWindow}
+                                        label={isThinking ? "Reasoning" : b.call.name.replace(/_/g, ' ')}
+                                        className="relative w-full max-w-full overflow-hidden"
+                                    >
+                                        {isThinking ? (
+                                            <Reasoning isStreaming={isStreamingBlock} duration={b.duration} className="mb-0">
+                                                <ReasoningContent className="font-mono text-xs opacity-80 leading-relaxed">{b.text}</ReasoningContent>
                                             </Reasoning>
-                                        </div>
-                                    );
-                                }
+                                        ) : (
+                                            <div className="mt-2">
+                                                <ControlledTool b={b} isDone={b.call.status === 'done'}>
+                                                    <ToolHeader
+                                                        type="tool-invocation"
+                                                        state={b.call.status === 'done' ? "output-available" : (!b.call.status === 'done' && b.awaitConfirm ? "approval-requested" : "input-available")}
+                                                        title={b.call.name.replace(/_/g, ' ')}
+                                                        args={b.call.args}
+                                                        result={b.call.result}
+                                                    />
+                                                    <ToolContent>
+                                                        <ToolInput input={b.call.args} name={b.call.name.replace(/_/g, '')} />
 
-                                if (b.type === 'tool-call') {
-                                    const isDone = b.call.status === 'done';
-                                    const lowerName = b.call.name.toLowerCase();
-                                    const showDiff = ['replacefilecontent', 'multireplacefilecontent', 'replace_file_content', 'multi_replace_file_content'].includes(lowerName);
-                                    const isCreatePlan = lowerName === 'createplan';
+                                                        {['replacefilecontent', 'multireplacefilecontent', 'replace_file_content', 'multi_replace_file_content'].includes(b.call.name.toLowerCase()) && (
+                                                            <DiffViewer
+                                                                targetFile={b.call.args.TargetFile}
+                                                                targetContent={b.call.args.TargetContent}
+                                                                replacementContent={b.call.args.ReplacementContent}
+                                                                patch={b.call.result?.diff}
+                                                            />
+                                                        )}
 
-                                    return (
-                                        <div key={b.id} className="relative w-full max-w-full overflow-hidden mt-2 first:mt-0">
-                                            <ControlledTool b={b} isDone={isDone}>
-                                                <ToolHeader
-                                                    type="tool-invocation"
-                                                    state={isDone ? "output-available" : (!isDone && b.awaitConfirm ? "approval-requested" : "input-available")}
-                                                    title={b.call.name.replace(/_/g, ' ')}
-                                                    args={b.call.args}
-                                                    result={b.call.result}
-                                                />
-                                                <ToolContent>
-                                                    <ToolInput input={b.call.args} name={b.call.name.replace(/_/g, '')} />
+                                                        {!(b.call.status === 'done') && b.awaitConfirm && (
+                                                            <div className="flex items-center gap-2 mt-4 pt-4 border-t border-border/50">
+                                                                <button
+                                                                    onClick={() => onApprove(b.id, b.call.id)}
+                                                                    className="px-3 py-1.5 text-xs font-medium rounded bg-green-500/20 text-green-500 hover:bg-green-500/30 transition-colors"
+                                                                >
+                                                                    Approve & Run
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => onReject(b.id, b.call.id)}
+                                                                    className="px-3 py-1.5 text-xs font-medium rounded bg-destructive/20 text-destructive hover:bg-destructive/30 transition-colors"
+                                                                >
+                                                                    Reject
+                                                                </button>
+                                                            </div>
+                                                        )}
 
-                                                    {showDiff && (
-                                                        <DiffViewer
-                                                            targetFile={b.call.args.TargetFile}
-                                                            targetContent={b.call.args.TargetContent}
-                                                            replacementContent={b.call.args.ReplacementContent}
-                                                            patch={b.call.result?.diff}
-                                                        />
-                                                    )}
-
-                                                    {!isDone && b.awaitConfirm && (
-                                                        <div className="flex items-center gap-2 mt-4 pt-4 border-t border-border/50">
-                                                            <button
-                                                                onClick={() => onApprove(b.id, b.call.id)}
-                                                                className="px-3 py-1.5 text-xs font-medium rounded bg-green-500/20 text-green-500 hover:bg-green-500/30 transition-colors"
-                                                            >
-                                                                Approve & Run
-                                                            </button>
-                                                            <button
-                                                                onClick={() => onReject(b.id, b.call.id)}
-                                                                className="px-3 py-1.5 text-xs font-medium rounded bg-destructive/20 text-destructive hover:bg-destructive/30 transition-colors"
-                                                            >
-                                                                Reject
-                                                            </button>
-                                                        </div>
-                                                    )}
-
-                                                    {isDone && b.call.result && <ToolOutput output={b.call.result} errorText={b.call.result.error || ""} name={b.call.name.replace(/_/g, '')} />}
-                                                </ToolContent>
-                                            </ControlledTool>
-                                        </div>
-                                    );
-                                }
-                                return null;
+                                                        {b.call.status === 'done' && b.call.result && <ToolOutput output={b.call.result} errorText={b.call.result.error || ""} name={b.call.name.replace(/_/g, '')} />}
+                                                    </ToolContent>
+                                                </ControlledTool>
+                                            </div>
+                                        )}
+                                    </ChainOfThoughtStep>
+                                );
                             })}
                         </div>
-                    </CollapsibleContent>
-                </Collapsible>
+                    </ChainOfThoughtContent>
+                </ChainOfThought>
             </MessageContent>
         </Message>
     );
