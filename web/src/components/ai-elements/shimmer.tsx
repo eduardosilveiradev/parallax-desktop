@@ -22,7 +22,7 @@ export function Shimmer({ text, children, animate = true, width = 13, duration }
     }, [animate]);
 
     const actualText = (typeof children === 'string' ? children : text) ?? "";
-    const display = actualText.startsWith('\u25C6') || actualText.startsWith('\uD83D') ? actualText : `\u25C6  ${actualText}`;
+    const display = actualText;
     const speed = 1.2;
     const phase = animate ? (((tick * speed) % 1.0) + 1.0) % 1.0 : 0;
     const totalSpan = display.length + width * 2;

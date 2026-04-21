@@ -1,6 +1,6 @@
 "use client";
 
-import { Cpu, TerminalWindow, Warning, Shield, Trash, Question, Plus, ListDashes, Archive, PuzzlePiece, GitCommit, GitPullRequest, Atom, Minus, Square, X, Copy, SidebarSimple, ChatTeardrop, CaretDown, CaretRight, SpinnerGap, SpinnerIcon } from "@phosphor-icons/react";
+import { Cpu, TerminalWindow, Warning, Shield, Trash, Question, Plus, ListDashes, Archive, PuzzlePiece, GitCommit, GitPullRequest, Atom, Minus, Square, X, Copy, SidebarSimple, ChatTeardrop, CaretDown, CaretRight, SpinnerGap, SpinnerIcon, Strategy, Bug, Robot } from "@phosphor-icons/react";
 import { useState, useEffect, FormEvent, useMemo } from "react";
 import { Conversation, ConversationContent } from "@/components/ai-elements/conversation";
 import { Message, MessageContent, MessageResponse } from "@/components/ai-elements/message";
@@ -33,15 +33,24 @@ import {
 } from "@/components/ai-elements/model-selector";
 import { Shimmer } from "@/components/ai-elements/shimmer";
 import { CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+    DropdownMenuSeparator,
+    DropdownMenuLabel,
+} from "@/components/ui/dropdown-menu";
 import { DiffViewer } from "@/components/ai-elements/diff-viewer";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
+import { Plan, PlanHeader, PlanTitle, PlanDescription, PlanContent, PlanFooter, PlanTrigger } from "@/components/ai-elements/plan";
 import Image from "next/image";
 
 type Block =
     | { type: 'user', id: string, text: string }
     | { type: 'assistant', id: string, text: string }
     | { type: 'thinking', id: string, text: string }
-    | { type: 'tool-call', id: string, awaitConfirm?: boolean, call: { id: string, name: string, args: any, status: 'calling' | 'done', result?: any } };
+    | { type: 'tool-call', id: string, awaitConfirm?: boolean, awaitUserInput?: boolean, uiHint?: string, call: { id: string, name: string, args: any, status: 'calling' | 'done', result?: any } };
 
 const API_URL = "http://localhost:3555";
 
@@ -81,9 +90,9 @@ function WorkGroup({ group, streaming, isLast, onApprove, onReject }: { group: a
     }, [group.isDone, group.duration]);
 
     return (
-        <Message from="assistant">
-            <MessageContent>
-                <Collapsible open={open} onOpenChange={setOpen} className="mb-6 mt-2 rounded-lg border border-border/30 bg-card/30 overflow-hidden">
+        <Message from="assistant" className="w-full max-w-none">
+            <MessageContent className="w-full max-w-none">
+                <Collapsible open={open} onOpenChange={setOpen} className="mb-6 mt-2 rounded-lg border border-border/30 bg-card/30 overflow-hidden w-full">
                     <CollapsibleTrigger className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-white/5 transition-colors focus:outline-none">
                         <div className="flex items-center gap-3 text-sm font-medium opacity-80">
                             {!group.isDone ? (
@@ -101,7 +110,7 @@ function WorkGroup({ group, streaming, isLast, onApprove, onReject }: { group: a
                             {open ? <CaretDown weight="bold" className="w-4 h-4" /> : <CaretRight weight="bold" className="w-4 h-4" />}
                         </div>
                     </CollapsibleTrigger>
-                    <CollapsibleContent className="px-5 pb-5 pt-1">
+                    <CollapsibleContent className="px-5 pb-5 pt-1 w-full">
                         <div className="flex flex-col gap-5 border-l-2 border-border/20 pl-4 py-1 max-w-full overflow-hidden mt-1">
                             {group.blocks.map((b: any, idx: number) => {
                                 const isStreamingBlock = streaming && isLast && idx === group.blocks.length - 1;
@@ -121,6 +130,7 @@ function WorkGroup({ group, streaming, isLast, onApprove, onReject }: { group: a
                                     const isDone = b.call.status === 'done';
                                     const lowerName = b.call.name.toLowerCase();
                                     const showDiff = ['replacefilecontent', 'multireplacefilecontent', 'replace_file_content', 'multi_replace_file_content'].includes(lowerName);
+                                    const isCreatePlan = lowerName === 'createplan';
 
                                     return (
                                         <div key={b.id} className="relative w-full max-w-full overflow-hidden mt-2 first:mt-0">
@@ -142,6 +152,68 @@ function WorkGroup({ group, streaming, isLast, onApprove, onReject }: { group: a
                                                             replacementContent={b.call.args.ReplacementContent}
                                                             patch={b.call.result?.diff}
                                                         />
+                                                    )}
+
+                                                    {isDone && isCreatePlan && b.call.result?.artifactId && (
+                                                        <Plan className="mt-3">
+                                                            <PlanHeader>
+                                                                <div className="flex-1">
+                                                                    <PlanTitle>Implementation Plan</PlanTitle>
+                                                                    <PlanDescription>
+                                                                        {b.call.args.name || "System Plan"}
+                                                                    </PlanDescription>
+                                                                </div>
+                                                                <PlanTrigger />
+                                                            </PlanHeader>
+                                                            <PlanContent>
+                                                                <div className="space-y-4">
+                                                                    {b.call.args.overview && (
+                                                                        <div>
+                                                                            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Overview</h4>
+                                                                            <p className="text-sm">{b.call.args.overview}</p>
+                                                                        </div>
+                                                                    )}
+                                                                    {b.call.args.plan && (
+                                                                        <div>
+                                                                            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Strategy</h4>
+                                                                            <div className="text-sm whitespace-pre-wrap">{b.call.args.plan}</div>
+                                                                        </div>
+                                                                    )}
+                                                                    {b.call.args.todos && Array.isArray(b.call.args.todos) && (
+                                                                        <div>
+                                                                            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Tasks</h4>
+                                                                            <div className="space-y-1.5">
+                                                                                {b.call.args.todos.map((t: any) => (
+                                                                                    <div key={t.id} className="flex items-center gap-2 text-sm">
+                                                                                        <div className="w-4 h-4 rounded border border-border/50 shrink-0" />
+                                                                                        <span className="opacity-80">{t.content}</span>
+                                                                                    </div>
+                                                                                ))}
+                                                                            </div>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            </PlanContent>
+                                                            <PlanFooter>
+                                                                <div className="flex flex-col gap-1 w-full">
+                                                                    <div className="text-[10px] text-muted-foreground font-mono">
+                                                                        Artifact: {b.call.result.artifactId}
+                                                                    </div>
+                                                                    <div className="flex items-center gap-2 mt-2">
+                                                                        <button
+                                                                            onClick={async () => {
+                                                                                try {
+                                                                                    await navigator.clipboard.writeText(String(b.call.result.markdown));
+                                                                                } catch { }
+                                                                            }}
+                                                                            className="px-3 py-1.5 text-xs font-medium rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                                                                        >
+                                                                            Copy Markdown
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            </PlanFooter>
+                                                        </Plan>
                                                     )}
 
                                                     {!isDone && b.awaitConfirm && (
@@ -192,12 +264,35 @@ export default function Home() {
     });
 
     const [yoloMode, setYoloMode] = useState(false);
+    const [mode, setMode] = useState<'agent' | 'plan' | 'debug'>('agent');
     const [modelSelectorOpen, setModelSelectorOpen] = useState(false);
     const [globalCommandOpen, setGlobalCommandOpen] = useState(false);
     const [slashCommandValue, setSlashCommandValue] = useState("");
     const [availableSessions, setAvailableSessions] = useState<{ id: string, mtime: number, messageCount: number, lastMessage?: string }[]>([]);
     const [isMaximized, setIsMaximized] = useState(false);
     const [sidebarOpen, setSidebarOpen] = useState(true);
+    const [rateLimit, setRateLimit] = useState<null | { message: string; untilMs: number; attempt?: number; maxAttempts?: number }>(null);
+    const [rateLimitNow, setRateLimitNow] = useState(0);
+
+    useEffect(() => {
+        if (!rateLimit) return;
+        setRateLimitNow(Date.now());
+        const interval = setInterval(() => setRateLimitNow(Date.now()), 200);
+        return () => clearInterval(interval);
+    }, [rateLimit]);
+
+    const pendingAskQuestion = useMemo(() => {
+        for (let i = blocks.length - 1; i >= 0; i--) {
+            const b: any = blocks[i];
+            if (b?.type === 'tool-call' && b.call?.status === 'calling') {
+                const name = String(b.call?.name || '').toLowerCase();
+                if (name === 'askquestion') return b;
+            }
+        }
+        return null;
+    }, [blocks]);
+
+    const [askAnswers, setAskAnswers] = useState<Record<string, string | string[]>>({});
 
     useEffect(() => {
         if (typeof window !== 'undefined' && (window as any).electronAPI?.onMaximizeChange) {
@@ -245,6 +340,9 @@ export default function Home() {
                 if (hist.blocks) {
                     setBlocks(hist.blocks);
                 }
+                if (hist.mode) {
+                    setMode(hist.mode);
+                }
 
                 try {
                     const models = await fetch(`${API_URL}/models`).then(r => r.json());
@@ -272,6 +370,7 @@ export default function Home() {
         setSessionId(id);
         const hist = await fetch(`${API_URL}/history/${id}`).then(r => r.json());
         setBlocks(hist.blocks || []);
+        if (hist.mode) setMode(hist.mode);
         if (typeof window !== 'undefined') {
             window.history.replaceState(null, '', `?session=${id}`);
         }
@@ -418,11 +517,23 @@ export default function Home() {
                                     newBlocks.push({ type: 'thinking', id: data.id, text: data.text || '' });
                                 }
                             }
+                            else if (data.type === 'rate-limit') {
+                                const retryAfterSeconds = Number(data.retryAfterSeconds || 10);
+                                const untilMs = Date.now() + retryAfterSeconds * 1000;
+                                setRateLimit({
+                                    message: String(data.message || 'Rate limit exceeded. Retrying soon.'),
+                                    untilMs,
+                                    attempt: data.attempt ? Number(data.attempt) : undefined,
+                                    maxAttempts: data.maxAttempts ? Number(data.maxAttempts) : undefined,
+                                });
+                            }
                             else if (data.type === 'tool-call') {
                                 newBlocks.push({
                                     type: 'tool-call',
                                     id: data.id,
                                     awaitConfirm: data.awaitConfirm,
+                                    awaitUserInput: data.awaitUserInput,
+                                    uiHint: data.uiHint,
                                     call: { id: data.id, name: data.name, args: data.input, status: 'calling' }
                                 });
                             }
@@ -431,6 +542,21 @@ export default function Home() {
                                 if (idx >= 0) {
                                     const callBlock = newBlocks[idx] as any;
                                     newBlocks[idx] = { ...callBlock, call: { ...callBlock.call, status: 'done', result: data.output } };
+                                }
+                            }
+                            else if (data.type === 'mode-change') {
+                                setMode(data.mode);
+                            }
+                            else if (data.type === 'error') {
+                                const msg = String(data.message || 'Unknown error');
+                                // Heuristic: surface rate-limit errors as a dedicated UI banner
+                                if (msg.includes('429') || msg.toLowerCase().includes('rate limit')) {
+                                    setRateLimit({
+                                        message: msg,
+                                        untilMs: Date.now() + 10000,
+                                    });
+                                } else {
+                                    newBlocks.push({ type: 'assistant', id: crypto.randomUUID(), text: `Error: ${msg}` });
                                 }
                             }
                         }
@@ -519,7 +645,7 @@ export default function Home() {
     if (status === 'connecting') {
         return (
             <main className="flex min-h-screen flex-col items-center justify-center p-24 bg-background">
-                <div className="flex flex-col items-center gap-4 text-muted-foreground animate-pulse">
+                <div className="flex flex-col items-center gap-4 text-muted-foreground">
                     <Cpu weight="duotone" className="w-12 h-12" />
                     <Shimmer>Connecting to CLI Daemon...</Shimmer>
                 </div>
@@ -559,6 +685,12 @@ export default function Home() {
                 </div>
 
                 <div className="flex items-center gap-3 [-webkit-app-region:no-drag]">
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 mr-2 rounded-full bg-muted/30 border border-border/20">
+                        {mode === 'agent' && <Robot weight="duotone" className="w-4 h-4 text-primary" />}
+                        {mode === 'plan' && <Strategy weight="duotone" className="w-4 h-4 text-amber-500" />}
+                        {mode === 'debug' && <Bug weight="duotone" className="w-4 h-4 text-destructive" />}
+                        <span className="text-[10px] font-bold uppercase tracking-wider opacity-80">{mode} mode</span>
+                    </div>
                     <button
                         onClick={() => (window as any).electronAPI?.windowMinimize()}
                         className="text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors p-1.5 rounded-md focus:outline-none"
@@ -720,6 +852,118 @@ export default function Home() {
                     {/* Input */}
                     <div className="shrink-0 p-6 bg-card/30 border-t border-border backdrop-blur-md relative z-10 w-full">
                         <div className="max-w-3xl mx-auto relative group">
+                            {rateLimit && (
+                                <div className="mb-3 rounded-lg border border-border/60 bg-destructive/5 p-3">
+                                    <div className="flex items-center justify-between gap-3">
+                                        <div className="text-sm text-destructive font-medium">
+                                            Rate limited
+                                        </div>
+                                        <div className="text-xs text-muted-foreground font-mono">
+                                            {(() => {
+                                                const remaining = Math.max(0, rateLimit.untilMs - (rateLimitNow || Date.now()));
+                                                const s = (remaining / 1000).toFixed(1);
+                                                const attemptText = rateLimit.attempt && rateLimit.maxAttempts ? ` • attempt ${rateLimit.attempt}/${rateLimit.maxAttempts}` : '';
+                                                return `retrying in ${s}s${attemptText}`;
+                                            })()}
+                                        </div>
+                                    </div>
+                                    <div className="mt-1 text-xs text-muted-foreground font-mono break-words">
+                                        {rateLimit.message}
+                                    </div>
+                                </div>
+                            )}
+                            {pendingAskQuestion && (
+                                <div className="mb-3 rounded-lg border border-border/60 bg-card/40 backdrop-blur-md p-4">
+                                    <div className="flex items-center justify-between gap-4">
+                                        <div className="text-sm font-medium">
+                                            {pendingAskQuestion.call.args?.title || "Answer required"}
+                                        </div>
+                                        <div className="text-xs text-muted-foreground font-mono">
+                                            Tool: AskQuestion
+                                        </div>
+                                    </div>
+
+                                    <div className="mt-4 space-y-4">
+                                        {(pendingAskQuestion.call.args?.questions || []).map((q: any) => {
+                                            const allowMultiple = !!q.allow_multiple;
+                                            const current = askAnswers[q.id];
+                                            const currentSet = new Set(Array.isArray(current) ? current : current ? [String(current)] : []);
+
+                                            return (
+                                                <div key={q.id} className="space-y-2">
+                                                    <div className="text-sm">{q.prompt}</div>
+                                                    <div className="flex flex-col gap-2">
+                                                        {(q.options || []).map((opt: any) => {
+                                                            const checked = currentSet.has(String(opt.id));
+                                                            return (
+                                                                <label key={opt.id} className="flex items-center gap-2 text-sm cursor-pointer select-none">
+                                                                    <input
+                                                                        type={allowMultiple ? "checkbox" : "radio"}
+                                                                        name={q.id}
+                                                                        checked={checked}
+                                                                        onChange={(e) => {
+                                                                            setAskAnswers((prev) => {
+                                                                                const next = { ...prev };
+                                                                                const prevVal = next[q.id];
+                                                                                const prevSet = new Set(Array.isArray(prevVal) ? prevVal : prevVal ? [String(prevVal)] : []);
+                                                                                const id = String(opt.id);
+                                                                                if (allowMultiple) {
+                                                                                    if (e.target.checked) prevSet.add(id);
+                                                                                    else prevSet.delete(id);
+                                                                                    next[q.id] = Array.from(prevSet);
+                                                                                } else {
+                                                                                    next[q.id] = id;
+                                                                                }
+                                                                                return next;
+                                                                            });
+                                                                        }}
+                                                                    />
+                                                                    <span className="text-muted-foreground">{opt.label}</span>
+                                                                </label>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+
+                                    <div className="mt-4 flex items-center gap-2">
+                                        <button
+                                            className="px-3 py-1.5 text-xs font-medium rounded bg-primary/20 text-primary hover:bg-primary/30 transition-colors"
+                                            onClick={async () => {
+                                                const callId = pendingAskQuestion.call.id;
+                                                await fetch(`${API_URL}/tool-response`, {
+                                                    method: 'POST',
+                                                    headers: { 'Content-Type': 'application/json' },
+                                                    body: JSON.stringify({ toolCallId: callId, payload: { answers: askAnswers } })
+                                                });
+                                                setAskAnswers({});
+                                            }}
+                                        >
+                                            Submit Answers
+                                        </button>
+                                        <button
+                                            className="px-3 py-1.5 text-xs font-medium rounded bg-destructive/20 text-destructive hover:bg-destructive/30 transition-colors"
+                                            onClick={async () => {
+                                                const callId = pendingAskQuestion.call.id;
+                                                await fetch(`${API_URL}/tool-response`, {
+                                                    method: 'POST',
+                                                    headers: { 'Content-Type': 'application/json' },
+                                                    body: JSON.stringify({ toolCallId: callId, payload: { cancelled: true } })
+                                                });
+                                                setAskAnswers({});
+                                            }}
+                                        >
+                                            Cancel
+                                        </button>
+                                        <div className="ml-auto text-xs text-muted-foreground">
+                                            Chat is paused until you respond.
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
                             {(() => {
                                 const showSlashMenu = input.startsWith('/');
                                 const slashCommands = [
@@ -817,7 +1061,7 @@ export default function Home() {
                                                 }
                                             }
                                         }}
-                                        disabled={streaming}
+                                        disabled={streaming || !!pendingAskQuestion}
                                         placeholder="Command Parallax..."
                                     />
                                 </PromptInputBody>
@@ -860,6 +1104,30 @@ export default function Home() {
                                                 </ModelSelectorList>
                                             </ModelSelectorContent>
                                         </ModelSelector>
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger className="flex items-center gap-2 px-3 py-1.5 border border-border/40 hover:bg-white/5 rounded-md transition-colors cursor-pointer outline-none">
+                                                {mode === 'agent' && <Robot weight="duotone" className="w-4 h-4 text-primary" />}
+                                                {mode === 'plan' && <Strategy weight="duotone" className="w-4 h-4 text-amber-500" />}
+                                                {mode === 'debug' && <Bug weight="duotone" className="w-4 h-4 text-destructive" />}
+                                                <span className="text-xs font-medium capitalize">{mode}</span>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="start" className="w-48">
+                                                <DropdownMenuLabel>Select Mode</DropdownMenuLabel>
+                                                <DropdownMenuSeparator />
+                                                <DropdownMenuItem onSelect={() => onSubmit('/mode agent')} className="gap-2">
+                                                    <Robot weight="duotone" className="w-4 h-4 text-primary" />
+                                                    <span>Agent Mode</span>
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem onSelect={() => onSubmit('/mode plan')} className="gap-2">
+                                                    <Strategy weight="duotone" className="w-4 h-4 text-amber-500" />
+                                                    <span>Plan Mode</span>
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem onSelect={() => onSubmit('/mode debug')} className="gap-2">
+                                                    <Bug weight="duotone" className="w-4 h-4 text-destructive" />
+                                                    <span>Debug Mode</span>
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
                                         <button
                                             onClick={() => setYoloMode(v => !v)}
                                             title={yoloMode ? "YOLO Mode Active: Agent will auto-execute any tools" : "Safe Mode Active: You must confirm tool executions"}
@@ -870,7 +1138,7 @@ export default function Home() {
                                         </button>
                                     </PromptInputTools>
                                     <PromptInputSubmit
-                                        disabled={streaming ? false : !input.trim()}
+                                        disabled={!!pendingAskQuestion ? true : (streaming ? false : !input.trim())}
                                         status={streaming ? "streaming" : "ready"}
                                         onStop={stopGeneration}
                                         onClick={e => {
