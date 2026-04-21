@@ -8,7 +8,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import type { LucideProps } from "@phosphor-icons/react";
+import type { IconProps } from "@phosphor-icons/react";
 import { BookmarkSimple } from "@phosphor-icons/react";
 import type { ComponentProps, HTMLAttributes } from "react";
 
@@ -31,7 +31,7 @@ export const Checkpoint = ({
   </div>
 );
 
-export type CheckpointIconProps = LucideProps;
+export type CheckpointIconProps = IconProps;
 
 export const CheckpointIcon = ({
   className,

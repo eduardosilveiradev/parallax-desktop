@@ -1,10 +1,11 @@
 "use client";
 
-import { Cpu, TerminalWindow, Warning, Shield, Trash, Question, Plus, ListDashes, Archive, PuzzlePiece, GitCommit, GitPullRequest, Atom, Minus, Square, X, Copy, SidebarSimple, ChatTeardrop, Strategy, Bug, Robot, CheckCircle, Circle, CircleNotchIcon } from "@phosphor-icons/react";
+import { Cpu, TerminalWindow, Warning, Shield, Trash, Question, Plus, ListDashes, Archive, PuzzlePiece, GitCommit, GitPullRequest, Atom, Minus, Square, X, Copy, SidebarSimple, ChatTeardrop, Strategy, Bug, Robot, CheckCircle, Circle, CircleNotchIcon, Brain, Folder, FolderIcon, ClockCounterClockwiseIcon } from "@phosphor-icons/react";
 import { useState, useEffect, useMemo } from "react";
-import { Conversation, ConversationContent } from "@/components/ai-elements/conversation";
+import { toast } from "sonner";
+import { Conversation, ConversationContent, ConversationScrollButton } from "@/components/ai-elements/conversation";
 import { Message, MessageContent, MessageResponse } from "@/components/ai-elements/message";
-import { Reasoning, ReasoningContent } from "@/components/ai-elements/reasoning";
+import { Reasoning, ReasoningTrigger, ReasoningContent } from "@/components/ai-elements/reasoning";
 import { Tool, ToolHeader, ToolContent, ToolInput, ToolOutput } from "@/components/ai-elements/tool";
 import {
     PromptInput,
@@ -98,84 +99,81 @@ function WorkGroup({ group, streaming, isLast, onApprove, onReject, onSubmit }: 
             <MessageContent className="w-full max-w-none">
                 <ChainOfThought open={open} onOpenChange={setOpen} className="mb-6 mt-2">
                     <ChainOfThoughtHeader
-                        icon={!group.isDone ? (props: any) => <CircleNotchIcon {...props} className={cn(props.className, "animate-spin text-primary")} /> : Atom}
+                        icon={!group.isDone ? (props: any) => <></> : Atom}
                         className="px-4 py-2.5 rounded-lg border border-border/30 bg-card/30 hover:bg-white/5 transition-colors"
                     >
                         {group.isDone ? (
-                            <span className="text-sm font-medium opacity-80">
+                            <span className="text-sm font-medium">
                                 {`Worked for ${seconds.toFixed(1)}s`}
                             </span>
                         ) : (
-                            <Shimmer className="text-sm font-medium opacity-80">
+                            <Shimmer>
                                 {`Working... ${seconds.toFixed(1)}s`}
                             </Shimmer>
                         )}
                     </ChainOfThoughtHeader>
 
-                    <ChainOfThoughtContent className="px-5 pb-5 pt-4 w-full ml-4 border-l border-border/20">
+                    <ChainOfThoughtContent className="px-5 pb-5 pt-4 w-full border-l border-border/20 ml-4">
                         <div className="flex flex-col gap-6">
                             {group.blocks.map((b: any, idx: number) => {
                                 const isStreamingBlock = streaming && isLast && idx === group.blocks.length - 1;
                                 const isThinking = b.type === 'thinking';
-                                const stepStatus = isStreamingBlock ? "active" : (b.type === 'tool-call' && b.call.status === 'calling' ? "active" : "complete");
 
-                                return (
-                                    <ChainOfThoughtStep
-                                        key={b.id}
-                                        status={stepStatus}
-                                        icon={isThinking ? Brain : TerminalWindow}
-                                        label={isThinking ? "Reasoning" : b.call.name.replace(/_/g, ' ')}
-                                        className="relative w-full max-w-full overflow-hidden"
-                                    >
-                                        {isThinking ? (
-                                            <Reasoning isStreaming={isStreamingBlock} duration={b.duration} className="mb-0">
+                                if (isThinking) {
+                                    return (
+                                        <div key={b.id} className="relative w-full max-w-full overflow-hidden">
+                                            <Reasoning isStreaming={isStreamingBlock} duration={b.duration}>
+                                                <ReasoningTrigger />
                                                 <ReasoningContent className="font-mono text-xs opacity-80 leading-relaxed">{b.text}</ReasoningContent>
                                             </Reasoning>
-                                        ) : (
-                                            <div className="mt-2">
-                                                <ControlledTool b={b} isDone={b.call.status === 'done'}>
-                                                    <ToolHeader
-                                                        type="tool-invocation"
-                                                        state={b.call.status === 'done' ? "output-available" : (!b.call.status === 'done' && b.awaitConfirm ? "approval-requested" : "input-available")}
-                                                        title={b.call.name.replace(/_/g, ' ')}
-                                                        args={b.call.args}
-                                                        result={b.call.result}
+                                        </div>
+                                    );
+                                }
+
+                                const isDone = b.call.status === 'done';
+                                return (
+                                    <div key={b.id} className="relative w-full max-w-full overflow-hidden">
+                                        <ControlledTool b={b} isDone={isDone}>
+                                            <ToolHeader
+                                                type="tool-invocation"
+                                                state={isDone ? "output-available" : (!isDone && b.awaitConfirm ? "approval-requested" : "input-available")}
+                                                title={b.call.name.replace(/_/g, ' ')}
+                                                args={b.call.args}
+                                                result={b.call.result}
+                                            />
+                                            <ToolContent>
+                                                <ToolInput input={b.call.args} name={b.call.name.replace(/_/g, '')} />
+
+                                                {['replacefilecontent', 'multireplacefilecontent', 'replace_file_content', 'multi_replace_file_content'].includes(b.call.name.toLowerCase()) && (
+                                                    <DiffViewer
+                                                        targetFile={b.call.args.TargetFile}
+                                                        targetContent={b.call.args.TargetContent}
+                                                        replacementContent={b.call.args.ReplacementContent}
+                                                        patch={b.call.result?.diff}
                                                     />
-                                                    <ToolContent>
-                                                        <ToolInput input={b.call.args} name={b.call.name.replace(/_/g, '')} />
+                                                )}
 
-                                                        {['replacefilecontent', 'multireplacefilecontent', 'replace_file_content', 'multi_replace_file_content'].includes(b.call.name.toLowerCase()) && (
-                                                            <DiffViewer
-                                                                targetFile={b.call.args.TargetFile}
-                                                                targetContent={b.call.args.TargetContent}
-                                                                replacementContent={b.call.args.ReplacementContent}
-                                                                patch={b.call.result?.diff}
-                                                            />
-                                                        )}
+                                                {!isDone && b.awaitConfirm && (
+                                                    <div className="flex items-center gap-2 mt-4 pt-4 border-t border-border/50">
+                                                        <button
+                                                            onClick={() => onApprove(b.id, b.call.id)}
+                                                            className="px-3 py-1.5 text-xs font-medium rounded bg-green-500/20 text-green-500 hover:bg-green-500/30 transition-colors"
+                                                        >
+                                                            Approve & Run
+                                                        </button>
+                                                        <button
+                                                            onClick={() => onReject(b.id, b.call.id)}
+                                                            className="px-3 py-1.5 text-xs font-medium rounded bg-destructive/20 text-destructive hover:bg-destructive/30 transition-colors"
+                                                        >
+                                                            Reject
+                                                        </button>
+                                                    </div>
+                                                )}
 
-                                                        {!(b.call.status === 'done') && b.awaitConfirm && (
-                                                            <div className="flex items-center gap-2 mt-4 pt-4 border-t border-border/50">
-                                                                <button
-                                                                    onClick={() => onApprove(b.id, b.call.id)}
-                                                                    className="px-3 py-1.5 text-xs font-medium rounded bg-green-500/20 text-green-500 hover:bg-green-500/30 transition-colors"
-                                                                >
-                                                                    Approve & Run
-                                                                </button>
-                                                                <button
-                                                                    onClick={() => onReject(b.id, b.call.id)}
-                                                                    className="px-3 py-1.5 text-xs font-medium rounded bg-destructive/20 text-destructive hover:bg-destructive/30 transition-colors"
-                                                                >
-                                                                    Reject
-                                                                </button>
-                                                            </div>
-                                                        )}
-
-                                                        {b.call.status === 'done' && b.call.result && <ToolOutput output={b.call.result} errorText={b.call.result.error || ""} name={b.call.name.replace(/_/g, '')} />}
-                                                    </ToolContent>
-                                                </ControlledTool>
-                                            </div>
-                                        )}
-                                    </ChainOfThoughtStep>
+                                                {isDone && b.call.result && <ToolOutput output={b.call.result} errorText={b.call.result.error || ""} name={b.call.name.replace(/_/g, '')} />}
+                                            </ToolContent>
+                                        </ControlledTool>
+                                    </div>
                                 );
                             })}
                         </div>
@@ -205,12 +203,13 @@ export default function Home() {
     const [modelSelectorOpen, setModelSelectorOpen] = useState(false);
     const [globalCommandOpen, setGlobalCommandOpen] = useState(false);
     const [slashCommandValue, setSlashCommandValue] = useState("");
-    const [availableSessions, setAvailableSessions] = useState<{ id: string, mtime: number, messageCount: number, lastMessage?: string }[]>([]);
+    const [availableSessions, setAvailableSessions] = useState<{ id: string, mtime: number, messageCount: number, lastMessage?: string, cwd?: string }[]>([]);
     const [isMaximized, setIsMaximized] = useState(false);
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [todos, setTodos] = useState<{ id: string, content: string, status: 'pending' | 'completed' }[]>([]);
     const [rateLimit, setRateLimit] = useState<null | { message: string; untilMs: number; attempt?: number; maxAttempts?: number }>(null);
     const [rateLimitNow, setRateLimitNow] = useState(0);
+    const [currentCwd, setCurrentCwd] = useState<string | null>(null);
 
     useEffect(() => {
         if (!rateLimit) return;
@@ -313,19 +312,39 @@ export default function Home() {
         setBlocks(hist.blocks || []);
         if (hist.mode) setMode(hist.mode);
         if (hist.todos) setTodos(hist.todos);
+        if (hist.cwd) setCurrentCwd(hist.cwd);
         if (typeof window !== 'undefined') {
             window.history.replaceState(null, '', `?session=${id}`);
         }
     };
 
-    const createNewSession = async () => {
+    const createNewSession = async (cwd?: string) => {
         const newId = crypto.randomUUID().substring(0, 8);
         setSessionId(newId);
         setBlocks([]);
+        setCurrentCwd(cwd || null);
         if (typeof window !== 'undefined') {
             window.history.replaceState(null, '', `?session=${newId}`);
         }
         await refreshSessions();
+    };
+
+    const handleSelectDirectory = async () => {
+        const promise = (window as any).electronAPI?.selectDirectory() as Promise<string | null> | undefined;
+        if (!promise) return;
+
+        toast.promise(promise, {
+            loading: 'Opening directory...',
+            success: (dir: string | null) => {
+                if (dir) {
+                    setCurrentCwd(dir);
+                    createNewSession(dir);
+                    return `Opened ${dir.split(/[\\/]/).pop()}`;
+                }
+                return 'Cancelled directory selection';
+            },
+            error: 'Failed to open directory'
+        });
     };
 
     const deleteSession = async (id: string) => {
@@ -402,10 +421,11 @@ export default function Home() {
         setBlocks(prev => [...prev, { type: 'user', id: userBlockId, text: displayUserText }]);
 
         try {
+            const currentSession = availableSessions.find(s => s.id === sessionId);
             const res = await fetch(`${API_URL}/prompt`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ prompt: sendUserText, sessionId, model: selectedModel.id, yolo: yoloMode, mode: mode }),
+                body: JSON.stringify({ prompt: sendUserText, sessionId, model: selectedModel.id, yolo: yoloMode, mode: mode, cwd: currentCwd || currentSession?.cwd }),
                 signal: controller.signal
             });
 
@@ -560,6 +580,16 @@ export default function Home() {
         return groups;
     }, [blocks, streaming]);
 
+    const groupedSessions = useMemo(() => {
+        const groups: Record<string, typeof availableSessions> = {};
+        availableSessions.forEach(s => {
+            const folder = s.cwd || 'Global';
+            if (!groups[folder]) groups[folder] = [];
+            groups[folder].push(s);
+        });
+        return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
+    }, [availableSessions]);
+
     const handleApprove = (blockId: string, callId: string) => {
         setBlocks(prev => {
             const next = [...prev];
@@ -665,52 +695,62 @@ export default function Home() {
                 {/* Sidebar */}
                 {sidebarOpen && (
                     <aside className="w-64 shrink-0 overflow-y-auto border-r border-border bg-card/10 flex flex-col hide-scrollbar">
-                        <div className="p-4 border-b border-border/50">
+                        <div className="p-4 border-b border-border/50 flex flex-col gap-2">
                             <button
-                                onClick={createNewSession}
+                                onClick={() => createNewSession(currentCwd || undefined)}
                                 className="w-full flex items-center justify-between px-3 py-2 text-sm font-medium text-foreground bg-primary/10 hover:bg-primary/20 rounded-md transition-colors"
                             >
                                 <span>New Session</span>
                                 <Plus weight="bold" className="w-4 h-4" />
                             </button>
+                            <button
+                                onClick={handleSelectDirectory}
+                                className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-white/5 rounded-md transition-colors border border-border/30"
+                            >
+                                <Folder weight="bold" className="w-4 h-4" />
+                                <span className="truncate">{currentCwd ? currentCwd.split(/[\\/]/).pop() : 'Open Folder...'}</span>
+                            </button>
                         </div>
-                        <div className="p-2 flex-1 flex flex-col gap-1">
+                        <div className="p-2 flex-1 flex flex-col gap-4 hide-scrollbar overflow-y-auto">
                             {availableSessions.length === 0 ? (
                                 <div className="px-3 py-4 text-xs text-muted-foreground text-center">No recent sessions</div>
                             ) : (
-                                availableSessions.map((session) => (
-                                    <div
-                                        key={session.id}
-                                        className={`group flex items-start justify-between px-3 py-3 rounded-md cursor-pointer transition-colors ${sessionId === session.id
-                                            ? "bg-white/10"
-                                            : "hover:bg-white/5"
-                                            }`}
-                                        onClick={() => loadSession(session.id)}
-                                    >
-                                        <div className="flex flex-col gap-1 truncate w-full pr-2">
-                                            <div className="flex items-center gap-2">
-                                                <ChatTeardrop weight={sessionId === session.id ? "fill" : "regular"} className={`w-3.5 h-3.5 shrink-0 ${sessionId === session.id ? "text-foreground" : "text-muted-foreground"}`} />
-                                                <span className={`truncate text-sm ${sessionId === session.id ? "text-foreground font-medium" : "text-muted-foreground"}`}>{session.id}</span>
-                                            </div>
-                                            <div className="text-[11px] text-muted-foreground/70 pl-5.5 truncate font-sans italic">
-                                                {session.lastMessage || 'Empty session...'}
-                                            </div>
-                                            <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/50 pl-5.5 font-mono mt-0.5">
-                                                <span>{new Date(session.mtime).toLocaleDateString()}</span>
-                                                <span>&middot;</span>
-                                                <span>{session.messageCount} msg{session.messageCount !== 1 ? 's' : ''}</span>
-                                            </div>
+                                groupedSessions.map(([folder, sessions]) => (
+                                    <div key={folder} className="flex flex-col gap-1">
+                                        <div className="px-3 py-1 text-sm font-normal text-muted-foreground flex items-center gap-2">
+                                            <FolderIcon weight="bold" className="w-3 h-3" />
+                                            <span className="truncate">{folder.split(/[\\/]/).pop()}</span>
                                         </div>
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                deleteSession(session.id);
-                                            }}
-                                            className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all focus:outline-none p-1.5 -mr-1 mt-0.5 rounded"
-                                            title="Delete Session"
-                                        >
-                                            <Trash weight="fill" className="w-4 h-4" />
-                                        </button>
+                                        {sessions.map((session) => (
+                                            <div
+                                                key={session.id}
+                                                className={`group flex items-start justify-between px-3 py-2.5 rounded-md cursor-pointer transition-colors ${sessionId === session.id
+                                                    ? "bg-white/10"
+                                                    : "hover:bg-white/5"
+                                                    }`}
+                                                onClick={() => loadSession(session.id)}
+                                            >
+                                                <div className="flex flex-col gap-0.5 truncate w-full pr-2">
+                                                    <div className="flex items-center gap-2">
+                                                        <ChatTeardrop weight={sessionId === session.id ? "fill" : "regular"} className={`w-3 h-3 shrink-0 ${sessionId === session.id ? "text-foreground" : "text-muted-foreground"}`} />
+                                                        <span className={`truncate text-sm ${sessionId === session.id ? "text-foreground font-medium" : "text-muted-foreground"}`}>{session.id}</span>
+                                                    </div>
+                                                    <div className="text-[11px] text-muted-foreground/60 pl-5 truncate font-sans italic">
+                                                        {session.lastMessage || 'Empty session...'}
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        deleteSession(session.id);
+                                                    }}
+                                                    className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all focus:outline-none p-1 -mr-1 mt-0.5 rounded"
+                                                    title="Delete Session"
+                                                >
+                                                    <Trash weight="fill" className="w-3.5 h-3.5" />
+                                                </button>
+                                            </div>
+                                        ))}
                                     </div>
                                 ))
                             )}
@@ -725,8 +765,64 @@ export default function Home() {
                         <Conversation className="h-full">
                             <ConversationContent className="px-6 py-8 gap-1">
                                 {blocks.length === 0 ? (
-                                    <div className="py-24 text-center text-muted-foreground font-mono text-sm">
-                                        Session initialized. Awaiting input.
+                                    <div className="py-24 flex flex-col gap-5">
+                                        <div>
+                                            <h1 className="font-semibold text-xl md:text-2xl">Welcome to Parallax.</h1>
+                                            <p className="text-xl text-zinc-500 md:text-2xl">What should we build today?</p>
+                                        </div>
+                                        <button
+                                            onClick={handleSelectDirectory}
+                                            className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-white/5 rounded-md transition-colors border border-border/30"
+                                        >
+                                            <Folder weight="bold" className="w-4 h-4" />
+                                            <span className="truncate">{currentCwd ? currentCwd.split(/[\\/]/).pop() : 'Open Folder...'}</span>
+                                        </button>
+                                        {currentCwd && <div className="flex flex-col gap-2 mt-4">
+                                            <div className="flex flex-row items-center gap-2 text-muted-foreground text-sm"><ClockCounterClockwiseIcon /> Recent in this folder</div>
+                                            <div>
+                                                {availableSessions.length === 0 ? (
+                                                    <div className="px-3 py-4 text-xs text-muted-foreground text-center">No recent sessions</div>
+                                                ) : (
+                                                    groupedSessions.map(([folder, sessions]) => {
+                                                        if (folder !== currentCwd) return null;
+                                                        return (
+                                                            <div key={folder} className="flex flex-col gap-1">
+                                                                {sessions.map((session) => (
+                                                                    <div
+                                                                        key={session.id}
+                                                                        className={`group flex items-start justify-between px-3 py-2.5 rounded-md cursor-pointer transition-colors ${sessionId === session.id
+                                                                            ? "bg-white/10"
+                                                                            : "hover:bg-white/5"
+                                                                            }`}
+                                                                        onClick={() => loadSession(session.id)}
+                                                                    >
+                                                                        <div className="flex flex-col gap-0.5 truncate w-full pr-2">
+                                                                            <div className="flex items-center gap-2">
+                                                                                <ChatTeardrop weight={sessionId === session.id ? "fill" : "regular"} className={`w-3 h-3 shrink-0 ${sessionId === session.id ? "text-foreground" : "text-muted-foreground"}`} />
+                                                                                <span className={`truncate text-sm ${sessionId === session.id ? "text-foreground font-medium" : "text-muted-foreground"}`}>{session.id}</span>
+                                                                            </div>
+                                                                            <div className="text-[11px] text-muted-foreground/60 pl-5 truncate font-sans italic">
+                                                                                {session.lastMessage || 'Empty session...'}
+                                                                            </div>
+                                                                        </div>
+                                                                        <button
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                deleteSession(session.id);
+                                                                            }}
+                                                                            className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all focus:outline-none p-1 -mr-1 mt-0.5 rounded"
+                                                                            title="Delete Session"
+                                                                        >
+                                                                            <Trash weight="fill" className="w-3.5 h-3.5" />
+                                                                        </button>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )
+                                                    })
+                                                )}
+                                            </div>
+                                        </div>}
                                     </div>
                                 ) : (
                                     groupedBlocks.map((group, groupIdx) => {
@@ -843,6 +939,7 @@ export default function Home() {
                                     }
                                     return null;
                                 })()}
+                                <ConversationScrollButton />
                             </ConversationContent>
                         </Conversation>
                     </div>
@@ -1050,7 +1147,7 @@ export default function Home() {
                                 );
                             })()}
                             <PromptInput onSubmit={({ text }) => { if (!streaming) { setInput(text); onSubmit(text); } }}>
-                                <PromptInputBody className="relative">
+                                <PromptInputBody className="relative has-disabled:opacity-100 disabled:opacity-100">
                                     <PromptInputTextarea
                                         value={input}
                                         onChange={e => setInput(e.target.value)}

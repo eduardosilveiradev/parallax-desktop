@@ -6,9 +6,10 @@ interface ShimmerProps {
     animate?: boolean;
     width?: number;
     duration?: number;
+    className?: string;
 }
 
-export function Shimmer({ text, children, animate = true, width = 13, duration }: ShimmerProps) {
+export function Shimmer({ text, children, animate = true, width = 13, duration, className }: ShimmerProps) {
     const [tick, setTick] = useState(0);
 
     useEffect(() => {
@@ -64,5 +65,5 @@ export function Shimmer({ text, children, animate = true, width = 13, duration }
         );
     });
 
-    return <span>{chars}</span>;
+    return <span className={className}>{chars}</span>;
 }

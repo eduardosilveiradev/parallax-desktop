@@ -8,7 +8,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
-import type { LucideIcon } from "@phosphor-icons/react";
+import type { Icon } from "@phosphor-icons/react";
 import { Brain, CaretDown, Circle } from "@phosphor-icons/react";
 import type { ComponentProps, ReactNode } from "react";
 import { createContext, memo, useContext, useMemo } from "react";
@@ -104,7 +104,7 @@ export const ChainOfThoughtHeader = memo(
 );
 
 export type ChainOfThoughtStepProps = ComponentProps<"div"> & {
-  icon?: LucideIcon;
+  icon?: Icon;
   label: ReactNode;
   description?: ReactNode;
   status?: "complete" | "active" | "pending";

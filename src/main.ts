@@ -1,7 +1,7 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import * as path from 'path';
 
-const isDev = !app.isPackaged;
+const isDev = !app.isPackaged && process.env.FORCE_PROD !== 'true';
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -19,7 +19,10 @@ function createWindow() {
 
     if (isDev) {
         // In development mode, point to the Next.js dev server
-        mainWindow.loadURL('http://localhost:3000');
+        mainWindow.loadFile(path.join(__dirname, '../prenextview/index.html'));
+        setTimeout(() => {
+            mainWindow?.loadURL('http://localhost:3000');
+        }, 2000); // wait 2 seconds for nextjs to boot
         // mainWindow.webContents.openDevTools();
     } else {
         // In production, point to the static export
@@ -70,4 +73,12 @@ ipcMain.on('window-toggle-maximize', () => {
 
 ipcMain.on('window-close', () => {
     mainWindow?.close();
+});
+
+ipcMain.handle('select-directory', async () => {
+    const result = await dialog.showOpenDialog(mainWindow!, {
+        properties: ['openDirectory']
+    });
+    if (result.canceled) return null;
+    return result.filePaths[0];
 });
