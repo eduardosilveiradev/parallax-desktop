@@ -44,15 +44,21 @@ async function startDaemon() {
     } else {
         // In production, we'll use the compiled JS
         // We'll place it in the resources folder
-        daemonPath = process.execPath; // Use the same electron/node binary
+        daemonPath = process.execPath; 
         const bundledServerPath = path.join(process.resourcesPath, 'daemon/dist/server.js');
         args = [bundledServerPath];
     }
 
+    console.log(`Spawning daemon at ${daemonPath} with args ${args.join(' ')}`);
+
     daemonProcess = spawn(daemonPath, args, {
         shell: true,
         stdio: 'inherit',
-        env: { ...process.env, PORT: port.toString() }
+        env: { 
+            ...process.env, 
+            PORT: port.toString(),
+            ELECTRON_RUN_AS_NODE: isDev ? undefined : '1'
+        }
     });
 
     daemonProcess.on('error', (err) => {
@@ -76,7 +82,7 @@ function createWindow() {
             nodeIntegration: false,
             contextIsolation: true,
         },
-        icon: path.join(__dirname, '../../', 'web/public/logo.png')
+        icon: path.join(__dirname, '../assets/icon.png')
     });
 
     if (isDev) {
