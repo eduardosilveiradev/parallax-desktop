@@ -4,6 +4,7 @@ import * as path from 'path';
 import { pathToFileURL } from 'url';
 import { spawn, ChildProcess } from 'child_process';
 import { createServer } from 'net';
+import * as fs from 'fs';
 
 const isDev = !app.isPackaged && process.env.FORCE_PROD !== 'true';
 let daemonProcess: ChildProcess | null = null;
@@ -41,7 +42,7 @@ async function startDaemon() {
     if (isDev) {
         // In dev, we can point to the sibling repo or use tsx
         daemonPath = 'npx';
-        args = ['-y', 'tsx', path.join(__dirname, '../../parallax-cli/src/server.ts')];
+        args = ['-y', 'tsx', path.join(app.getAppPath(), '../../parallax-cli/src/server.ts')];
     } else {
         // In production, we'll use the compiled JS
         // We'll place it in the resources folder
@@ -79,16 +80,16 @@ function createWindow() {
         height: 800,
         frame: false, // Frameless window
         webPreferences: {
-            preload: path.join(__dirname, 'preload.js'),
+            preload: path.join(app.getAppPath(), 'dist/preload.js'),
             nodeIntegration: false,
             contextIsolation: true,
         },
-        icon: path.join(__dirname, '../assets/icon.png')
+        icon: path.join(app.getAppPath(), 'assets/icon.png')
     });
 
     if (isDev) {
         // In development mode, point to the Next.js dev server
-        mainWindow.loadFile(path.join(__dirname, '../prenextview/index.html'));
+        mainWindow.loadFile(path.join(app.getAppPath(), 'prenextview/index.html'));
         setTimeout(() => {
             mainWindow?.loadURL('http://localhost:3000');
         }, 2000); // wait 2 seconds for nextjs to boot
@@ -125,8 +126,8 @@ app.whenReady().then(async () => {
         }
 
         const baseDir = app.isPackaged
-            ? path.join(__dirname, '../web-out')
-            : path.join(__dirname, '../../web/out');
+            ? path.join(app.getAppPath(), '../web-out')
+            : path.join(app.getAppPath(), '../web/out');
 
         const filePath = path.join(baseDir, pathname);
 

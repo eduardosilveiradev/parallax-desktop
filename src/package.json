@@ -1,6 +1,6 @@
 {
 	"name": "parallax-desktop-shell",
-	"version": "1.3.14",
+	"version": "1.0.1",
 	"private": true,
 	"description": "Premium utilitarian AI agent interface with local workspace support.",
 	"author": "Parallax Team",
@@ -55,7 +55,7 @@
 			"createDesktopShortcut": true,
 			"createStartMenuShortcut": true,
 			"shortcutName": "Parallax",
-			"artifactName": "Parallax-Setup-1.0.0.exe"
+			"artifactName": "Parallax-Setup-${version}.exe"
 		},
 		"linux": {
 			"target": "AppImage"
