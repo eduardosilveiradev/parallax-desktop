@@ -13,15 +13,17 @@ import {
     CaretDown,
     Circle,
     Clock,
-    Wrench,
     XCircle,
-    TerminalWindow,
-    MagnifyingGlass,
-    Globe,
-    ClipboardText,
-    Folder,
-    File,
-    PencilSimple
+    QuestionMarkIcon,
+    StrategyIcon,
+    PencilSimpleIcon,
+    WrenchIcon,
+    FolderIcon,
+    TerminalWindowIcon,
+    MagnifyingGlassIcon,
+    GlobeIcon,
+    ClipboardTextIcon,
+    EyeIcon
 } from "@phosphor-icons/react";
 import type { ComponentProps, ReactNode } from "react";
 import { isValidElement } from "react";
@@ -213,25 +215,25 @@ function getToolLabel(name: string, args: any, status: 'calling' | 'done', resul
 
 function ToolIcon({ name, className }: { name: string, className?: string }) {
     switch (name) {
-        case 'AskQuestion': return <Wrench className={className} />;
-        case 'CreatePlan': return <File className={className} />;
-        case 'TodoWrite': return <PencilSimple className={className} />;
-        case 'SwitchMode': return <Wrench className={className} />;
-        case 'Task': return <Wrench className={className} />;
-        case 'ListDir': return <Folder className={className} />;
-        case 'ViewFile': return <File className={className} />;
+        case 'AskQuestion': return <QuestionMarkIcon className={className} />;
+        case 'CreatePlan': return <StrategyIcon className={className} />;
+        case 'TodoWrite': return <PencilSimpleIcon className={className} />;
+        case 'SwitchMode': return <WrenchIcon className={className} />;
+        case 'Task': return <WrenchIcon className={className} />;
+        case 'ListDir': return <FolderIcon className={className} />;
+        case 'ViewFile': return <EyeIcon className={className} />;
         case 'WriteToFile':
         case 'ReplaceFileContent':
-        case 'MultiReplaceFileContent': return <PencilSimple className={className} />;
+        case 'MultiReplaceFileContent': return <PencilSimpleIcon className={className} />;
         case 'RunCommand':
         case 'CommandStatus':
-        case 'SendCommandInput': return <TerminalWindow className={className} />;
-        case 'GrepSearch': return <MagnifyingGlass className={className} />;
+        case 'SendCommandInput': return <TerminalWindowIcon className={className} />;
+        case 'GrepSearch': return <MagnifyingGlassIcon className={className} />;
         case 'SearchWeb':
-        case 'ReadUrlContent': return <Globe className={className} />;
+        case 'ReadUrlContent': return <GlobeIcon className={className} />;
         case 'ReadClipboard':
-        case 'WriteClipboard': return <ClipboardText className={className} />;
-        default: return <Wrench className={className} />;
+        case 'WriteClipboard': return <ClipboardTextIcon className={className} />;
+        default: return <WrenchIcon className={className} />;
     }
 }
 

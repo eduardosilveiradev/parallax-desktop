@@ -909,9 +909,6 @@ export default function Home() {
                                                 <Question className="w-4 h-4 text-primary" />
                                                 {pendingAskQuestion.call.args?.title || "Clarification Required"}
                                             </CardTitle>
-                                            <Badge variant="outline" className="text-[10px] uppercase font-mono tracking-tighter opacity-70">
-                                                Tool: AskQuestion
-                                            </Badge>
                                         </div>
                                     </CardHeader>
                                     <CardContent className="py-5">
@@ -1001,10 +998,6 @@ export default function Home() {
                                             >
                                                 Cancel
                                             </Button>
-                                        </div>
-                                        <div className="text-[10px] font-medium text-muted-foreground italic flex items-center gap-1.5">
-                                            <SpinnerGap className="size-3 animate-spin" />
-                                            Streaming paused
                                         </div>
                                     </CardFooter>
                                 </Card>
