@@ -8,12 +8,13 @@ We built this because terminal output gets messy when agents start executing hug
 
 You need the `parallax-cli` backend running first. If you don't have that up, the UI won't have anything to connect to.
 
-Once your daemon is running, start the Next.js app:
+Once your daemon is running, start the Electron app:
 
 ```bash
-pnpm install
 pnpm dev
 ```
+
+We're working on a packaged executable.
 
 Open `http://localhost:3000`. It will automatically connect to the backend's Server-Sent Events (SSE) stream.
 
@@ -26,4 +27,4 @@ Open `http://localhost:3000`. It will automatically connect to the backend's Ser
 
 ## Architecture
 
-It's a Next.js 15 app. We use React 19, Tailwind CSS, and a custom SSE parser to handle the raw stream from the CLI. You don't need to configure a database—the UI pulls session history straight from your local Parallax workspace files.
+It's a Next.js 16 app. We use React 19, Tailwind CSS, and a custom SSE parser to handle the raw stream from the CLI. You don't need to configure a database—the UI pulls session history straight from your local Parallax workspace files.

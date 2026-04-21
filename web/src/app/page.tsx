@@ -628,7 +628,7 @@ export default function Home() {
             <main className="flex min-h-screen flex-col items-center justify-center p-24 bg-background">
                 <div className="flex flex-col items-center gap-4 text-muted-foreground">
                     <Cpu weight="duotone" className="w-12 h-12" />
-                    <Shimmer>Connecting to CLI Daemon...</Shimmer>
+                    <Shimmer>Connecting to Parallax server...</Shimmer>
                 </div>
             </main>
         );
@@ -639,9 +639,10 @@ export default function Home() {
             <main className="flex min-h-screen flex-col items-center justify-center p-24 bg-background">
                 <div className="flex flex-col items-center gap-4 text-destructive">
                     <Warning weight="duotone" className="w-12 h-12" />
-                    <p className="text-sm mb-4">Daemon Unreachable</p>
+                    <p className="text-sm mb-4">Parallax server unreachable</p>
                     <div className="bg-destructive/10 text-destructive p-4 border border-destructive/20 rounded-md text-sm text-center max-w-md">
-                        Parallax Desktop relies on parallax-cli running via <code className="font-mono bg-black/50 px-1 py-0.5 rounded">pnpm serve</code> on your machine. The internal RPC server on port 3555 is offline.
+                        Parallax Desktop relies on Parallax server running on port 3555. The server is offline.
+                        <p className="text-xs mt-2">You can start the server by running <code className="font-mono bg-black/50 px-1 py-0.5 rounded">parallax serve</code> in the project root.</p>
                     </div>
                 </div>
             </main>

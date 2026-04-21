@@ -1,18 +1,68 @@
 {
-  "name": "parallax-desktop-shell",
-  "version": "1.0.0",
-  "private": true,
-  "main": "dist/main.js",
-  "scripts": {
-    "dev": "tsc && electron .",
-    "build": "tsc"
-  },
-  "devDependencies": {
-    "electron": "^30.0.0",
-    "electron-builder": "^24.13.3",
-    "typescript": "^5.0.0",
-    "@types/node": "^20.0.0",
-    "concurrently": "^8.2.2",
-    "electron-is-dev": "^3.0.1"
-  }
+	"name": "parallax-desktop-shell",
+	"version": "1.3.14",
+	"private": true,
+	"description": "Premium utilitarian AI agent interface with local workspace support.",
+	"author": "Parallax Team",
+	"main": "dist/main.js",
+	"scripts": {
+		"dev": "tsc && electron .",
+		"build": "tsc",
+		"copy:daemon": "xcopy /E /I /Y ..\\..\\parallax-cli\\dist daemon\\dist && copy ..\\..\\parallax-cli\\package.json daemon\\package.json",
+		"install:daemon": "cd daemon && set CI=true && pnpm install --prod --no-frozen-lockfile",
+		"copy:web": "xcopy /E /I /Y ..\\web\\out web-out",
+		"build:package": "pnpm build && pnpm copy:daemon && pnpm install:daemon && pnpm copy:web && npx electron-builder"
+	},
+	"build": {
+		"appId": "com.parallax.desktop",
+		"productName": "Parallax",
+		"copyright": "Copyright © 2026 Parallax",
+		"directories": {
+			"output": "../dist",
+			"buildResources": "assets"
+		},
+		"files": [
+			"dist/**/*",
+			"prenextview/**/*",
+			"web-out/**/*"
+		],
+		"extraResources": [
+			{
+				"from": "daemon",
+				"to": "daemon",
+				"filter": [
+					"**/*"
+				]
+			}
+		],
+		"win": {
+			"icon": "assets/icon.png",
+			"target": [
+				"nsis",
+				"portable"
+			]
+		},
+		"nsis": {
+			"oneClick": false,
+			"allowToChangeInstallationDirectory": true,
+			"createDesktopShortcut": true,
+			"createStartMenuShortcut": true,
+			"shortcutName": "Parallax",
+			"artifactName": "Parallax-Setup-1.0.0.exe"
+		},
+		"linux": {
+			"target": "AppImage"
+		},
+		"mac": {
+			"target": "dmg"
+		}
+	},
+	"devDependencies": {
+		"electron": "30.5.1",
+		"electron-builder": "^24.13.3",
+		"typescript": "^5.0.0",
+		"@types/node": "^20.0.0",
+		"concurrently": "^8.2.2",
+		"electron-is-dev": "^3.0.1"
+	}
 }
