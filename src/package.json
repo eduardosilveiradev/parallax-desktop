@@ -16,6 +16,13 @@
 	"build": {
 		"appId": "com.parallax.desktop",
 		"productName": "Parallax",
+		"publish": [
+			{
+				"provider": "github",
+				"owner": "eduardosilveiradev",
+				"repo": "parallax-desktop"
+			}
+		],
 		"copyright": "Copyright © 2026 Parallax",
 		"directories": {
 			"output": "../dist",
@@ -58,11 +65,14 @@
 		}
 	},
 	"devDependencies": {
-		"electron": "30.5.1",
-		"electron-builder": "^24.13.3",
-		"typescript": "^5.0.0",
 		"@types/node": "^20.0.0",
 		"concurrently": "^8.2.2",
-		"electron-is-dev": "^3.0.1"
+		"electron": "30.5.1",
+		"electron-builder": "^24.13.3",
+		"electron-is-dev": "^3.0.1",
+		"typescript": "^5.0.0"
+	},
+	"dependencies": {
+		"electron-updater": "^6.8.3"
 	}
 }

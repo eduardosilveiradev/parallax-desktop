@@ -1,4 +1,5 @@
 import { app, BrowserWindow, ipcMain, dialog, protocol, net } from 'electron';
+import { autoUpdater } from 'electron-updater';
 import * as path from 'path';
 import { pathToFileURL } from 'url';
 import { spawn, ChildProcess } from 'child_process';
@@ -133,6 +134,10 @@ app.whenReady().then(async () => {
     });
 
     createWindow();
+
+    if (app.isPackaged) {
+        autoUpdater.checkForUpdatesAndNotify();
+    }
 
     app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) {
