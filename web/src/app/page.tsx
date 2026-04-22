@@ -503,16 +503,16 @@ export default function Home() {
 
     const handleToggleTodo = async (id: string) => {
         if (!sessionId) return;
-        
+
         const nextTodos = todos.map(t => {
             if (t.id === id) {
                 return { ...t, status: t.status === 'completed' ? 'pending' : 'completed' } as any;
             }
             return t;
         });
-        
+
         setTodos(nextTodos);
-        
+
         try {
             await fetch(`${API_URL}/sessions/${sessionId}/todos`, {
                 method: 'POST',
@@ -556,12 +556,14 @@ export default function Home() {
             {/* Header */}
             <header className="shrink-0 flex items-center justify-between px-6 py-4 border-b border-border bg-card/50 backdrop-blur-md relative z-10 [-webkit-app-region:drag]">
                 <div className="flex items-center gap-4">
-                    <button
+                    <Button
+                        variant="ghost"
+                        size="icon"
                         className="[-webkit-app-region:no-drag] text-muted-foreground hover:text-foreground transition-colors focus:outline-none"
                         onClick={() => setSidebarOpen(!sidebarOpen)}
                     >
                         <SidebarSimple weight="bold" className="w-5 h-5" />
-                    </button>
+                    </Button>
                     <div className="flex items-center gap-3">
                         <Image loading="lazy" src="/logo.png" alt="Parallax" width={24} height={24} className="w-5 h-5 text-muted-foreground" />
                         <h1 className="text-md font-normal flex items-center gap-2">
@@ -569,7 +571,7 @@ export default function Home() {
                             {availableSessions.find(s => s.id === sessionId)?.threadName && (
                                 <>
                                     <span className="text-muted-foreground/30 font-thin text-xs">/</span>
-                                    <span className="text-muted-foreground text-sm truncate max-w-[200px]">{availableSessions.find(s => s.id === sessionId)?.threadName}</span>
+                                    <span className="text-muted-foreground text-sm truncate max-w-50">{availableSessions.find(s => s.id === sessionId)?.threadName}</span>
                                 </>
                             )}
                         </h1>
@@ -577,28 +579,34 @@ export default function Home() {
                 </div>
 
                 <div className="flex items-center gap-3 [-webkit-app-region:no-drag]">
-                    <button
+                    <Button
+                        variant="ghost"
+                        size="icon-sm"
                         onClick={() => (window as any).electronAPI?.windowMinimize()}
-                        className="text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors p-1.5 rounded-md focus:outline-none"
+                        className="text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors focus:outline-none"
                     >
                         <Minus weight="bold" className="w-4 h-4" />
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="icon-sm"
                         onClick={() => (window as any).electronAPI?.windowToggleMaximize()}
-                        className="text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors p-1.5 rounded-md focus:outline-none"
+                        className="text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors focus:outline-none"
                     >
                         {isMaximized ? (
                             <Copy weight="bold" className="w-4 h-4" />
                         ) : (
                             <Square weight="bold" className="w-4 h-4" />
                         )}
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="icon-sm"
                         onClick={() => (window as any).electronAPI?.windowClose()}
-                        className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors p-1.5 rounded-md focus:outline-none"
+                        className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors focus:outline-none"
                     >
                         <X weight="bold" className="w-4 h-4" />
-                    </button>
+                    </Button>
                 </div>
             </header>
 
@@ -607,20 +615,21 @@ export default function Home() {
                 {sidebarOpen && (
                     <aside className="w-64 shrink-0 overflow-y-auto border-r border-border bg-card/10 flex flex-col hide-scrollbar">
                         <div className="p-4 border-b border-border/50 flex flex-col gap-2">
-                            <button
+                            <Button
                                 onClick={() => createNewSession(currentCwd || undefined)}
                                 className="w-full flex items-center justify-between px-3 py-2 text-sm font-medium text-foreground bg-primary/10 hover:bg-primary/20 rounded-md transition-colors"
                             >
                                 <span>New Session</span>
                                 <Plus weight="bold" className="w-4 h-4" />
-                            </button>
-                            <button
+                            </Button>
+                            <Button
+                                variant="outline"
                                 onClick={handleSelectDirectory}
                                 className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-white/5 rounded-md transition-colors border border-border/30"
                             >
                                 <Folder weight="bold" className="w-4 h-4" />
                                 <span className="truncate">{currentCwd ? currentCwd.split(/[\\/]/).pop() : 'Open Folder...'}</span>
-                            </button>
+                            </Button>
                         </div>
                         <div className="p-2 flex-1 flex flex-col gap-4 hide-scrollbar overflow-y-auto">
                             {availableSessions.length === 0 ? (
@@ -646,16 +655,18 @@ export default function Home() {
                                                         {session.threadName || session.id}
                                                     </div>
                                                 </div>
-                                                <button
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon-xs"
                                                     onClick={(e) => {
                                                         e.stopPropagation();
                                                         deleteSession(session.id);
                                                     }}
-                                                    className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all focus:outline-none p-1 -mr-1 rounded shrink-0"
+                                                    className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all focus:outline-none rounded shrink-0"
                                                     title="Delete Session"
                                                 >
                                                     <Trash weight="fill" className="w-3.5 h-3.5" />
-                                                </button>
+                                                </Button>
                                             </div>
                                         ))}
                                     </div>
@@ -666,9 +677,9 @@ export default function Home() {
                 )}
 
                 {/* Main Content Area */}
-                <div className="flex-1 flex flex-col overflow-hidden relative">
+                <div className="flex-1 flex flex-col overflow-hidden relative max-w-3xl w-full mx-auto">
                     {/* Main Feed using AI Elements */}
-                    <div className="flex-1 overflow-hidden max-w-3xl w-full mx-auto">
+                    <div className="flex-1 overflow-hidden">
                         <Conversation className="h-full">
                             <ConversationContent className="px-6 py-8 gap-1">
                                 {blocks.length === 0 ? (
@@ -677,13 +688,14 @@ export default function Home() {
                                             <h1 className="font-semibold text-xl md:text-2xl">Welcome to Parallax.</h1>
                                             <p className="text-xl text-zinc-500 md:text-2xl">What should we build today?</p>
                                         </div>
-                                        <button
+                                        <Button
+                                            variant="outline"
                                             onClick={handleSelectDirectory}
                                             className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-white/5 rounded-md transition-colors border border-border/30"
                                         >
                                             <Folder weight="bold" className="w-4 h-4" />
                                             <span className="truncate">{currentCwd ? currentCwd.split(/[\\/]/).pop() : 'Open Folder...'}</span>
-                                        </button>
+                                        </Button>
                                         {currentCwd && <div className="flex flex-col gap-2 mt-4">
                                             <div className="flex flex-row items-center gap-2 text-muted-foreground text-sm"><ClockCounterClockwiseIcon /> Recent in this folder</div>
                                             <div>
@@ -712,16 +724,18 @@ export default function Home() {
                                                                                 {session.lastMessage || 'Empty session...'}
                                                                             </div>
                                                                         </div>
-                                                                        <button
+                                                                        <Button
+                                                                            variant="ghost"
+                                                                            size="icon-xs"
                                                                             onClick={(e) => {
                                                                                 e.stopPropagation();
                                                                                 deleteSession(session.id);
                                                                             }}
-                                                                            className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all focus:outline-none p-1 -mr-1 mt-0.5 rounded"
+                                                                            className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all focus:outline-none rounded"
                                                                             title="Delete Session"
                                                                         >
                                                                             <Trash weight="fill" className="w-3.5 h-3.5" />
-                                                                        </button>
+                                                                        </Button>
                                                                     </div>
                                                                 ))}
                                                             </div>
@@ -852,13 +866,15 @@ export default function Home() {
                     </div>
 
                     {/* Input */}
-                    <div className="shrink-0 p-6 bg-card/30 border-t border-border backdrop-blur-md relative z-10 w-full">
+                    <div className="shrink-0 p-6 backdrop-blur-md relative z-10 w-full">
                         <div className="max-w-3xl mx-auto relative group">
-                            <TodoList 
-                                todos={todos as any} 
-                                onToggle={handleToggleTodo}
-                                className="mb-8"
-                            />
+                            {blocks.length > 0 && (
+                                <TodoList
+                                    todos={todos as any}
+                                    onToggle={handleToggleTodo}
+                                    className="mb-8"
+                                />
+                            )}
                             {rateLimit && (
                                 <div className="mb-3 rounded-lg border border-border/60 bg-destructive/5 p-3">
                                     <div className="flex items-center justify-between gap-3">
@@ -874,7 +890,7 @@ export default function Home() {
                                             })()}
                                         </div>
                                     </div>
-                                    <div className="mt-1 text-xs text-muted-foreground font-mono break-words">
+                                    <div className="mt-1 text-xs text-muted-foreground font-mono wrap-break-word">
                                         {rateLimit.message}
                                     </div>
                                 </div>
@@ -1147,14 +1163,18 @@ export default function Home() {
                                             </ModelSelectorContent>
                                         </ModelSelector>
 
-                                        <button
+                                        <Button
+                                            variant="outline"
                                             onClick={() => setYoloMode(v => !v)}
                                             title={yoloMode ? "YOLO Mode Active: Agent will auto-execute any tools" : "Safe Mode Active: You must confirm tool executions"}
-                                            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold uppercase border hover:bg-white/5 rounded-md transition-colors cursor-pointer outline-none focus:ring-1 focus:ring-ring ${yoloMode ? 'border-destructive/50 text-destructive bg-destructive/5' : 'border-border/40 text-muted-foreground'}`}
+                                            className={cn(
+                                                "flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold uppercase transition-colors cursor-pointer outline-none focus:ring-1 focus:ring-ring",
+                                                yoloMode ? 'border-destructive/50 text-destructive bg-destructive/5' : 'border-border/40 text-muted-foreground'
+                                            )}
                                         >
                                             <span className="opacity-70">{yoloMode ? <Warning weight="bold" className="w-3.5 h-3.5" /> : <Shield weight="bold" className="w-3.5 h-3.5 shrink-0" />}</span>
                                             <span>YOLO</span>
-                                        </button>
+                                        </Button>
                                     </PromptInputTools>
                                     <PromptInputSubmit
                                         disabled={!!pendingAskQuestion ? true : (streaming ? false : !input.trim())}

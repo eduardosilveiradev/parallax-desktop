@@ -9,6 +9,7 @@ import { Atom, ClockIcon } from "@phosphor-icons/react";
 import { getToolLabel, Tool, ToolContent, ToolHeader, ToolInput, ToolOutput } from "./ai-elements/tool";
 import { DiffViewer } from "./ai-elements/diff-viewer";
 import { Badge } from "./ui/badge";
+import { Button } from "./ui/button";
 
 function ControlledTool({ b, isDone, children }: { b: any, isDone: boolean, children: React.ReactNode }) {
     const isAwaiting = !isDone && !!b.awaitConfirm;
@@ -120,18 +121,21 @@ export function WorkGroup({ group, streaming, isLast, onApprove, onReject, onSub
 
                                                 {!isDone && b.awaitConfirm && (
                                                     <div className="flex items-center gap-2 mt-4 pt-4 border-t border-border/50">
-                                                        <button
+                                                        <Button
+                                                            size="sm"
                                                             onClick={() => onApprove(b.id, b.call.id)}
-                                                            className="px-3 py-1.5 text-xs font-medium rounded bg-green-500/20 text-green-500 hover:bg-green-500/30 transition-colors"
+                                                            className="bg-green-500/20 text-green-500 hover:bg-green-500/30 transition-colors border-none"
                                                         >
                                                             Approve & Run
-                                                        </button>
-                                                        <button
+                                                        </Button>
+                                                        <Button
+                                                            variant="destructive"
+                                                            size="sm"
                                                             onClick={() => onReject(b.id, b.call.id)}
-                                                            className="px-3 py-1.5 text-xs font-medium rounded bg-destructive/20 text-destructive hover:bg-destructive/30 transition-colors"
+                                                            className="bg-destructive/20 text-destructive hover:bg-destructive/30 transition-colors border-none"
                                                         >
                                                             Reject
-                                                        </button>
+                                                        </Button>
                                                     </div>
                                                 )}
 

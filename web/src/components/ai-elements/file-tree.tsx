@@ -5,6 +5,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
   CaretRight,
@@ -175,14 +176,15 @@ export const FileTreeFolder = ({
               isSelected && "bg-muted"
             )}
           >
-            <CollapsibleTrigger render={<button className="flex shrink-0 cursor-pointer items-center border-none bg-transparent p-0" type="button" />}><CaretRight
+            <CollapsibleTrigger render={<Button variant="ghost" className="flex shrink-0 cursor-pointer items-center border-none bg-transparent p-0 size-4" type="button" />}><CaretRight
                                         className={cn(
                                           "size-4 shrink-0 text-muted-foreground transition-transform",
                                           isExpanded && "rotate-90"
                                         )}
                                       /></CollapsibleTrigger>
-            <button
-              className="flex min-w-0 flex-1 cursor-pointer items-center gap-1 border-none bg-transparent p-0 text-left"
+            <Button
+              variant="ghost"
+              className="flex min-w-0 flex-1 cursor-pointer items-center gap-1 border-none bg-transparent p-0 text-left h-auto hover:bg-transparent"
               onClick={handleSelect}
               type="button"
             >
@@ -194,7 +196,7 @@ export const FileTreeFolder = ({
                 )}
               </FileTreeIcon>
               <FileTreeName>{name}</FileTreeName>
-            </button>
+            </Button>
           </div>
           <CollapsibleContent>
             <div className="ml-4 border-l pl-2">{children}</div>

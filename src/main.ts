@@ -4,6 +4,7 @@ import * as path from 'path';
 import { pathToFileURL } from 'url';
 import { spawn, ChildProcess } from 'child_process';
 import * as fs from 'fs';
+import * as os from 'os';
 
 const isDev = !app.isPackaged && process.env.FORCE_PROD !== 'true';
 let daemonProcess: ChildProcess | null = null;
@@ -36,9 +37,17 @@ async function startDaemon() {
 
     console.log(`Spawning daemon at ${daemonPath} with args ${args.join(' ')}`);
 
+    const logDir = path.join(os.homedir(), '.parallax');
+    if (!fs.existsSync(logDir)) {
+        fs.mkdirSync(logDir, { recursive: true });
+    }
+    const logFile = path.join(logDir, 'daemon.log');
+    const out = fs.openSync(logFile, 'a');
+
     daemonProcess = spawn(daemonPath, args, {
         shell: true,
-        stdio: 'inherit',
+        stdio: ['ignore', out, out],
+        windowsHide: true,
         env: { 
             ...process.env, 
             PORT: port.toString(),

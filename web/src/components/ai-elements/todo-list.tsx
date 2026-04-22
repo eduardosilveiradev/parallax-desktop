@@ -33,15 +33,14 @@ export function TodoList({ todos, className, onToggle }: TodoListProps) {
                     <div className="size-6 rounded-md bg-primary/10 flex items-center justify-center text-primary">
                         <ListChecks weight="duotone" className="size-4" />
                     </div>
-                    <span className="text-xs font-bold uppercase tracking-widest text-foreground/70">Session Objectives</span>
+                    <span className="text-xs text-foreground/70">To Do's</span>
                 </div>
                 <div className="flex items-center gap-3">
                     <div className="flex flex-col items-end gap-1">
-                        <span className="text-[10px] font-mono text-muted-foreground/60 uppercase">Progress</span>
                         <div className="text-[10px] font-bold text-primary/80">{stats.completed} / {stats.total}</div>
                     </div>
                     <div className="w-24 h-1.5 rounded-full bg-border/30 overflow-hidden relative">
-                        <div 
+                        <div
                             className="absolute inset-y-0 left-0 bg-primary transition-all duration-1000 ease-in-out"
                             style={{ width: `${stats.progress}%` }}
                         />
@@ -51,12 +50,10 @@ export function TodoList({ todos, className, onToggle }: TodoListProps) {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3 px-1">
                 {todos.map((t, idx) => (
-                    <div 
-                        key={t.id} 
-                        onClick={() => onToggle?.(t.id)}
+                    <div
+                        key={t.id}
                         className={cn(
-                            "flex items-start gap-3 group transition-all duration-300",
-                            onToggle ? "cursor-pointer" : "cursor-default",
+                            "flex items-start gap-3",
                             t.status === 'completed' ? "opacity-50" : "opacity-100"
                         )}
                         style={{ animationDelay: `${idx * 50}ms` }}
