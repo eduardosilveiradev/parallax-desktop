@@ -9,7 +9,7 @@
 		"dev": "tsc && electron .",
 		"build": "tsc",
 		"copy:daemon": "xcopy /E /I /Y ..\\..\\parallax-cli\\dist daemon\\dist && copy ..\\..\\parallax-cli\\package.json daemon\\package.json",
-		"install:daemon": "cd daemon && set CI=true && pnpm install --prod --no-frozen-lockfile",
+		"install:daemon": "cd daemon && set CI=true && pnpm install --no-frozen-lockfile",
 		"copy:web": "xcopy /E /I /Y ..\\web\\out web-out",
 		"build:package": "pnpm build && pnpm copy:daemon && pnpm install:daemon && pnpm copy:web && npx electron-builder"
 	},

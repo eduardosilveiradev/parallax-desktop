@@ -26,7 +26,10 @@ export function Shimmer({ text, children, animate = true, width = 13, duration, 
         if (!node) return "";
         if (typeof node === "string" || typeof node === "number") return String(node);
         if (Array.isArray(node)) return node.map(getText).join("");
-        if (React.isValidElement(node)) return getText(node.props.children);
+        if (React.isValidElement(node)) {
+            const element = node as React.ReactElement<{ children?: React.ReactNode }>;
+            return getText(element.props.children);
+        }
         return "";
     };
 
