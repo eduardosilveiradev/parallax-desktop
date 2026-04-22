@@ -104,11 +104,11 @@ function WorkGroup({ group, streaming, isLast, onApprove, onReject, onSubmit }: 
                     >
                         {group.isDone ? (
                             <span className="text-sm font-medium">
-                                {`Worked for ${seconds.toFixed(1)}s`}
+                                {`Worked for ${seconds.toFixed(0)} second${seconds === 1 ? '' : 's'}.`}
                             </span>
                         ) : (
                             <Shimmer>
-                                {`Working... ${seconds.toFixed(1)}s`}
+                                {`Working... ${seconds.toFixed(1)} second${seconds === 1 ? '' : 's'}.`}
                             </Shimmer>
                         )}
                     </ChainOfThoughtHeader>
@@ -203,7 +203,7 @@ export default function Home() {
     const [modelSelectorOpen, setModelSelectorOpen] = useState(false);
     const [globalCommandOpen, setGlobalCommandOpen] = useState(false);
     const [slashCommandValue, setSlashCommandValue] = useState("");
-    const [availableSessions, setAvailableSessions] = useState<{ id: string, mtime: number, messageCount: number, lastMessage?: string, cwd?: string }[]>([]);
+    const [availableSessions, setAvailableSessions] = useState<{ id: string, mtime: number, messageCount: number, lastMessage?: string, displayName?: string, threadName?: string, cwd?: string }[]>([]);
     const [isMaximized, setIsMaximized] = useState(false);
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [todos, setTodos] = useState<{ id: string, content: string, status: 'pending' | 'completed' }[]>([]);
@@ -662,7 +662,15 @@ export default function Home() {
                     </button>
                     <div className="flex items-center gap-3">
                         <Image loading="lazy" src="/logo.png" alt="Parallax" width={24} height={24} className="w-5 h-5 text-muted-foreground" />
-                        <h1 className="text-md font-normal">Parallax</h1>
+                        <h1 className="text-md font-normal flex items-center gap-2">
+                            <span>Parallax</span>
+                            {availableSessions.find(s => s.id === sessionId)?.threadName && (
+                                <>
+                                    <span className="text-muted-foreground/30 font-thin text-xs">/</span>
+                                    <span className="text-muted-foreground text-sm truncate max-w-[200px]">{availableSessions.find(s => s.id === sessionId)?.threadName}</span>
+                                </>
+                            )}
+                        </h1>
                     </div>
                 </div>
 
@@ -725,19 +733,15 @@ export default function Home() {
                                         {sessions.map((session) => (
                                             <div
                                                 key={session.id}
-                                                className={`group flex items-start justify-between px-3 py-2.5 rounded-md cursor-pointer transition-colors ${sessionId === session.id
+                                                className={`group flex items-center justify-between px-3 py-2.5 rounded-md cursor-pointer transition-colors ${sessionId === session.id
                                                     ? "bg-white/10"
                                                     : "hover:bg-white/5"
                                                     }`}
                                                 onClick={() => loadSession(session.id)}
                                             >
-                                                <div className="flex flex-col gap-0.5 truncate w-full pr-2">
-                                                    <div className="flex items-center gap-2">
-                                                        <ChatTeardrop weight={sessionId === session.id ? "fill" : "regular"} className={`w-3 h-3 shrink-0 ${sessionId === session.id ? "text-foreground" : "text-muted-foreground"}`} />
-                                                        <span className={`truncate text-sm ${sessionId === session.id ? "text-foreground font-medium" : "text-muted-foreground"}`}>{session.id}</span>
-                                                    </div>
-                                                    <div className="text-[11px] text-muted-foreground/60 pl-5 truncate font-sans italic">
-                                                        {session.lastMessage || 'Empty session...'}
+                                                <div className="flex flex-col gap-0.5 justify-center truncate flex-1 pr-2">
+                                                    <div className={`text-xs truncate ${sessionId === session.id ? "text-foreground font-medium" : "text-muted-foreground font-normal"}`}>
+                                                        {session.threadName || session.id}
                                                     </div>
                                                 </div>
                                                 <button
@@ -745,7 +749,7 @@ export default function Home() {
                                                         e.stopPropagation();
                                                         deleteSession(session.id);
                                                     }}
-                                                    className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all focus:outline-none p-1 -mr-1 mt-0.5 rounded"
+                                                    className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all focus:outline-none p-1 -mr-1 rounded shrink-0"
                                                     title="Delete Session"
                                                 >
                                                     <Trash weight="fill" className="w-3.5 h-3.5" />
@@ -800,7 +804,7 @@ export default function Home() {
                                                                         <div className="flex flex-col gap-0.5 truncate w-full pr-2">
                                                                             <div className="flex items-center gap-2">
                                                                                 <ChatTeardrop weight={sessionId === session.id ? "fill" : "regular"} className={`w-3 h-3 shrink-0 ${sessionId === session.id ? "text-foreground" : "text-muted-foreground"}`} />
-                                                                                <span className={`truncate text-sm ${sessionId === session.id ? "text-foreground font-medium" : "text-muted-foreground"}`}>{session.id}</span>
+                                                                                <span className={`truncate text-sm ${sessionId === session.id ? "text-foreground font-medium" : "text-muted-foreground"}`}>{session.displayName || session.id}</span>
                                                                             </div>
                                                                             <div className="text-[11px] text-muted-foreground/60 pl-5 truncate font-sans italic">
                                                                                 {session.lastMessage || 'Empty session...'}
