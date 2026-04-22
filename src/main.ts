@@ -3,7 +3,6 @@ import { autoUpdater } from 'electron-updater';
 import * as path from 'path';
 import { pathToFileURL } from 'url';
 import { spawn, ChildProcess } from 'child_process';
-import { createServer } from 'net';
 import * as fs from 'fs';
 
 const isDev = !app.isPackaged && process.env.FORCE_PROD !== 'true';
@@ -14,26 +13,10 @@ protocol.registerSchemesAsPrivileged([
     { scheme: 'app', privileges: { standard: true, secure: true, supportFetchAPI: true } }
 ]);
 
-async function isPortOpen(port: number): Promise<boolean> {
-    return new Promise((resolve) => {
-        const server = createServer();
-        server.once('error', () => resolve(false));
-        server.once('listening', () => {
-            server.close();
-            resolve(true);
-        });
-        server.listen(port);
-    });
-}
+
 
 async function startDaemon() {
     const port = 3555;
-    const open = await isPortOpen(port);
-    if (!open) {
-        console.log('Parallax server already running on port', port);
-        return;
-    }
-
     console.log('Starting Parallax daemon...');
 
     let daemonPath: string;
@@ -87,18 +70,6 @@ function createWindow() {
         icon: path.join(app.getAppPath(), 'assets/icon.png')
     });
 
-    if (isDev) {
-        // In development mode, point to the Next.js dev server
-        mainWindow.loadFile(path.join(app.getAppPath(), 'prenextview/index.html'));
-        setTimeout(() => {
-            mainWindow?.loadURL('http://localhost:3000');
-        }, 2000); // wait 2 seconds for nextjs to boot
-        // mainWindow.webContents.openDevTools();
-    } else {
-        // In production, load from the app protocol
-        mainWindow.loadURL('app://localhost/index.html');
-    }
-
     mainWindow.on('maximize', () => {
         mainWindow?.webContents.send('window-maximized', true);
     });
@@ -112,11 +83,36 @@ function createWindow() {
     });
 }
 
-app.whenReady().then(async () => {
-    // Start the daemon server
-    await startDaemon();
+async function waitForDaemon(port: number) {
+    const url = `http://localhost:${port}/ping`;
+    while (true) {
+        try {
+            const resp = await net.fetch(url);
+            if (resp.ok) return;
+        } catch (e) {
+            // Ignore errors while waiting
+        }
+        await new Promise(r => setTimeout(r, 200));
+    }
+}
 
-    // Handle the app protocol for static files
+app.whenReady().then(async () => {
+    // 1. Create window and show "Starting Engine" screen
+    createWindow();
+    
+    // In dev, __dirname is src/dist. In prod, it's dist/
+    const prenextDir = path.join(__dirname, '..', 'prenextview');
+    mainWindow?.loadFile(path.join(prenextDir, 'starting.html'));
+
+    // 2. Start the daemon server
+    void startDaemon();
+
+    // 3. Wait for daemon to be ready (polled via /ping)
+    await waitForDaemon(3555);
+    await new Promise(r => setTimeout(r, 500)); // Small buffer for stability
+    console.log('Daemon is ready, transitioning to Next.js splash...');
+
+    // 4. Handle the app protocol for static files
     protocol.handle('app', (request) => {
         const url = new URL(request.url);
         let pathname = url.pathname;
@@ -134,7 +130,16 @@ app.whenReady().then(async () => {
         return net.fetch(pathToFileURL(filePath).toString());
     });
 
-    createWindow();
+    // 5. Navigate to the main app or Next.js splash
+    if (isDev) {
+        mainWindow?.loadFile(path.join(prenextDir, 'index.html'));
+        setTimeout(() => {
+            console.log('Transitioning to main Next.js app...');
+            mainWindow?.loadURL('http://localhost:3000');
+        }, 3000); // Give Next.js more time to boot
+    } else {
+        mainWindow?.loadURL('app://localhost/index.html');
+    }
 
     if (app.isPackaged) {
         autoUpdater.checkForUpdatesAndNotify();

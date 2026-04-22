@@ -86,7 +86,7 @@ export const getStatusBadge = (status: ToolPart["state"]) => (
 );
 
 
-function getToolLabel(name: string, args: any, status: 'calling' | 'done', result?: any): ReactNode {
+export function getToolLabel(name: string, args: any, status: 'calling' | 'done', result?: any): ReactNode {
     const isDone = status === 'done';
     const isFail = isDone && result && typeof result === 'object' && result.success === false;
     const filePath = args?.TargetFile || args?.AbsolutePath || args?.DirectoryPath || args?.path;
@@ -186,7 +186,7 @@ function getToolLabel(name: string, args: any, status: 'calling' | 'done', resul
             return <span>{isDone ? `Wrote ${fileName}` : `Writing ${fileName}`}{lineInfo}</span>;
         case 'ReplaceFileContent':
         case 'MultiReplaceFileContent':
-            return <span>{isDone ? `Edited ${fileName}` : `Editing ${fileName}`}{lineInfo}</span>;
+            return <span>{isDone ? `Edited ${fileName}` : `Editing ${fileName}`}{isDone && lineInfo}</span>;
         case 'RunCommand':
             return isDone ? `Ran ${cmdLine}` : `Running ${cmdLine}`;
         case 'CommandStatus':
@@ -274,7 +274,8 @@ export type ToolContentProps = ComponentProps<typeof CollapsibleContent>;
 export const ToolContent = ({ className, ...props }: ToolContentProps) => (
     <CollapsibleContent
         className={cn(
-            "data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2 space-y-4 p-4 text-popover-foreground outline-none data-[state=closed]:animate-out data-[state=open]:animate-in",
+            "overflow-hidden data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up",
+            "data-[state=closed]:fade-out-0 data-[state=open]:slide-in-from-top-2 space-y-4 p-4 text-popover-foreground outline-none data-[state=closed]:animate-out data-[state=open]:animate-in",
             className
         )}
         {...props}

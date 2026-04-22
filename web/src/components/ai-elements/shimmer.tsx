@@ -22,7 +22,15 @@ export function Shimmer({ text, children, animate = true, width = 13, duration, 
         return () => clearInterval(interval);
     }, [animate]);
 
-    const actualText = (typeof children === 'string' ? children : text) ?? "";
+    const getText = (node: React.ReactNode): string => {
+        if (!node) return "";
+        if (typeof node === "string" || typeof node === "number") return String(node);
+        if (Array.isArray(node)) return node.map(getText).join("");
+        if (React.isValidElement(node)) return getText(node.props.children);
+        return "";
+    };
+
+    const actualText = (typeof children === 'string' ? children : (children ? getText(children) : text)) ?? "";
     const display = actualText;
     const speed = 1.2;
     const phase = animate ? (((tick * speed) % 1.0) + 1.0) % 1.0 : 0;
