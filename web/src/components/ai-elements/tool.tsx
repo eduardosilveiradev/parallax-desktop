@@ -213,7 +213,7 @@ export function getToolLabel(name: string, args: any, status: 'calling' | 'done'
     }
 }
 
-function ToolIcon({ name, className }: { name: string, className?: string }) {
+export function ToolIcon({ name, className }: { name: string, className?: string }) {
     switch (name) {
         case 'AskQuestion': return <QuestionMarkIcon className={className} />;
         case 'CreatePlan': return <StrategyIcon className={className} />;
@@ -250,12 +250,11 @@ export const ToolHeader = ({
     return (
         <CollapsibleTrigger
             className={cn(
-                "flex w-full items-center gap-2 text-muted-foreground text-xs transition-colors hover:text-foreground",
+                "flex w-full items-center gap-2 text-muted-foreground text-[13px] transition-colors hover:text-foreground",
                 className
             )}
             {...props}
         >
-            <ToolIcon name={title || toolName || type || ''} className="size-4" />
             {state.startsWith('output-') ? (
                 <span>{getToolLabel(title || toolName || type || '', args, 'done', result)}</span>
             ) : (
@@ -263,8 +262,6 @@ export const ToolHeader = ({
                     {getToolLabel(title || toolName || type || '', args, 'calling', result)}
                 </Shimmer>
             )}
-            {getStatusBadge(state)}
-            <CaretDown className="size-4 transition-transform group-data-[state=open]:rotate-180" />
         </CollapsibleTrigger>
     );
 };
@@ -275,7 +272,7 @@ export const ToolContent = ({ className, ...props }: ToolContentProps) => (
     <CollapsibleContent
         className={cn(
             "overflow-hidden data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up",
-            "data-[state=closed]:fade-out-0 data-[state=open]:slide-in-from-top-2 space-y-4 p-4 text-popover-foreground outline-none data-[state=closed]:animate-out data-[state=open]:animate-in",
+            "data-[state=closed]:fade-out-0 data-[state=open]:slide-in-from-top-2 text-popover-foreground outline-none data-[state=closed]:animate-out data-[state=open]:animate-in",
             className
         )}
         {...props}
@@ -290,11 +287,26 @@ export type ToolInputProps = ComponentProps<"div"> & {
 export const ToolInput = ({ className, input, name, ...props }: ToolInputProps) => {
     if (!input || typeof input !== 'object') return null;
 
-    return (
-        <div className={cn("space-y-3 overflow-hidden text-sm", className)} {...props}>
-            {Object.entries(input).map(([key, value]) => {
-                if (key === 'ReplacementChunks' || key === 'TargetContent' || key === 'ReplacementContent') return null;
+    const entries = Object.entries(input).filter(([k]) => !['ReplacementChunks', 'TargetContent', 'ReplacementContent'].includes(k));
+    if (entries.length === 0) return null;
 
+    const allSimple = entries.every(([_, v]) => (typeof v === 'string' && !v.includes('\n') && v.length < 50) || typeof v === 'number' || typeof v === 'boolean');
+
+    if (allSimple) {
+        return (
+            <div className={cn("flex flex-wrap gap-2 pt-2", className)} {...props}>
+                {entries.map(([key, value]) => (
+                    <div key={key} className="flex items-center rounded-full bg-white/5 border border-border/20 px-3 py-1 text-xs text-muted-foreground">
+                        {String(value)}
+                    </div>
+                ))}
+            </div>
+        );
+    }
+
+    return (
+        <div className={cn("space-y-3 overflow-hidden text-sm pt-2", className)} {...props}>
+            {entries.map(([key, value]) => {
                 const isMultiline = typeof value === 'string' && value.includes('\n');
 
                 return (

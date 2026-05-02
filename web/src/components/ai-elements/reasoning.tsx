@@ -183,14 +183,7 @@ export const ReasoningTrigger = memo(
             >
                 {children ?? (
                     <>
-                        <Brain className="size-4" />
                         {getThinkingMessage(isStreaming, duration)}
-                        <CaretDown
-                            className={cn(
-                                "size-4 transition-transform",
-                                isOpen ? "rotate-180" : "rotate-0"
-                            )}
-                        />
                     </>
                 )}
             </CollapsibleTrigger>
