@@ -102,54 +102,52 @@ export function WorkGroup({ group, streaming, isLast, onApprove, onReject, onSub
 
                                 const isDone = b.call.status === 'done';
                                 return (
-                                    <>
-                                        <div key={b.id} className="relative w-full max-w-full pl-8">
-                                            <div className="absolute left-0 top-0 flex h-5 w-5 items-center justify-center bg-background z-10">
-                                                <ToolIcon name={b.call.name.replace(/_/g, '')} className="size-[18px] text-muted-foreground" />
-                                            </div>
-                                            <ControlledTool b={b} isDone={isDone}>
-                                                <ToolHeader
-                                                    type="tool-invocation"
-                                                    state={isDone ? "output-available" : (!isDone && b.awaitConfirm ? "approval-requested" : "input-available")}
-                                                    title={b.call.name.replace(/_/g, ' ')}
-                                                    args={b.call.args}
-                                                    result={b.call.result} />
-                                                <ToolContent>
-                                                    <ToolInput input={b.call.args} name={b.call.name.replace(/_/g, '')} />
-
-                                                    {['replacefilecontent', 'multireplacefilecontent', 'replace_file_content', 'multi_replace_file_content'].includes(b.call.name.toLowerCase()) && (
-                                                        <DiffViewer
-                                                            targetFile={b.call.args.TargetFile}
-                                                            targetContent={b.call.args.TargetContent}
-                                                            replacementContent={b.call.args.ReplacementContent}
-                                                            patch={b.call.result?.diff} />
-                                                    )}
-
-                                                    {!isDone && b.awaitConfirm && (
-                                                        <div className="flex items-center gap-2 mt-4 pt-4 border-t border-border/50">
-                                                            <Button
-                                                                size="sm"
-                                                                onClick={() => onApprove(b.id, b.call.id)}
-                                                                className="bg-green-500/20 text-green-500 hover:bg-green-500/30 transition-colors border-none"
-                                                            >
-                                                                Approve & Run
-                                                            </Button>
-                                                            <Button
-                                                                variant="destructive"
-                                                                size="sm"
-                                                                onClick={() => onReject(b.id, b.call.id)}
-                                                                className="bg-destructive/20 text-destructive hover:bg-destructive/30 transition-colors border-none"
-                                                            >
-                                                                Reject
-                                                            </Button>
-                                                        </div>
-                                                    )}
-
-                                                    {isDone && b.call.result && <ToolOutput output={b.call.result} errorText={b.call.result.error || ""} name={b.call.name.replace(/_/g, '')} />}
-                                                </ToolContent>
-                                            </ControlledTool>
+                                    <div key={b.id} className="relative w-full max-w-full pl-8">
+                                        <div className="absolute left-0 top-0 flex h-5 w-5 items-center justify-center bg-background z-10">
+                                            <ToolIcon name={b.call.name.replace(/_/g, '')} className="size-[18px] text-muted-foreground" />
                                         </div>
-                                    </>
+                                        <ControlledTool b={b} isDone={isDone}>
+                                            <ToolHeader
+                                                type="tool-invocation"
+                                                state={isDone ? "output-available" : (!isDone && b.awaitConfirm ? "approval-requested" : "input-available")}
+                                                title={b.call.name.replace(/_/g, ' ')}
+                                                args={b.call.args}
+                                                result={b.call.result} />
+                                            <ToolContent>
+                                                <ToolInput input={b.call.args} name={b.call.name.replace(/_/g, '')} />
+
+                                                {['replacefilecontent', 'multireplacefilecontent', 'replace_file_content', 'multi_replace_file_content'].includes(b.call.name.toLowerCase()) && (
+                                                    <DiffViewer
+                                                        targetFile={b.call.args.TargetFile}
+                                                        targetContent={b.call.args.TargetContent}
+                                                        replacementContent={b.call.args.ReplacementContent}
+                                                        patch={b.call.result?.diff} />
+                                                )}
+
+                                                {!isDone && b.awaitConfirm && (
+                                                    <div className="flex items-center gap-2 mt-4 pt-4 border-t border-border/50">
+                                                        <Button
+                                                            size="sm"
+                                                            onClick={() => onApprove(b.id, b.call.id)}
+                                                            className="bg-green-500/20 text-green-500 hover:bg-green-500/30 transition-colors border-none"
+                                                        >
+                                                            Approve & Run
+                                                        </Button>
+                                                        <Button
+                                                            variant="destructive"
+                                                            size="sm"
+                                                            onClick={() => onReject(b.id, b.call.id)}
+                                                            className="bg-destructive/20 text-destructive hover:bg-destructive/30 transition-colors border-none"
+                                                        >
+                                                            Reject
+                                                        </Button>
+                                                    </div>
+                                                )}
+
+                                                {isDone && b.call.result && <ToolOutput output={b.call.result} errorText={b.call.result.error || ""} name={b.call.name.replace(/_/g, '')} />}
+                                            </ToolContent>
+                                        </ControlledTool>
+                                    </div>
                                 );
                             })}
                         </div>

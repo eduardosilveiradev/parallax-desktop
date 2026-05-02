@@ -1,6 +1,6 @@
 "use client";
 
-import { Cpu, TerminalWindow, Warning, Shield, Trash, Question, Plus, ListDashes, Archive, PuzzlePiece, GitCommit, GitPullRequest, Atom, Minus, Square, X, Copy, SidebarSimple, ChatTeardrop, Strategy, Bug, Robot, CheckCircle, Circle, CircleNotchIcon, Brain, Folder, FolderIcon, ClockCounterClockwiseIcon } from "@phosphor-icons/react";
+import { Gear, Cpu, TerminalWindow, Warning, Shield, Trash, Question, Plus, ListDashes, Archive, PuzzlePiece, GitCommit, GitPullRequest, Atom, Minus, Square, X, Copy, SidebarSimple, ChatTeardrop, Strategy, Bug, Robot, CheckCircle, Circle, CircleNotchIcon, Brain, Folder, FolderIcon, ClockCounterClockwiseIcon } from "@phosphor-icons/react";
 import { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import { Conversation, ConversationContent, ConversationScrollButton } from "@/components/ai-elements/conversation";
@@ -34,6 +34,7 @@ import {
 } from "@/components/ai-elements/model-selector";
 import { Shimmer } from "@/components/ai-elements/shimmer";
 import { CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -60,6 +61,25 @@ type Block =
     | { type: 'tool-call', id: string, awaitConfirm?: boolean, awaitUserInput?: boolean, uiHint?: string, call: { id: string, name: string, args: any, status: 'calling' | 'done', result?: any } };
 
 const API_URL = "http://localhost:3555";
+
+const getWelcomeMessage = (name: string) => {
+    const hour = new Date().getHours();
+    const formattedName = name ? `, ${name}` : '';
+
+    if (hour >= 1 && hour < 5) {
+        return `It's ${hour} AM${formattedName} wtf.`;
+    }
+    if (hour >= 5 && hour < 12) {
+        return `Good morning${formattedName}.`;
+    }
+    if (hour >= 12 && hour < 17) {
+        return `Good afternoon${formattedName}.`;
+    }
+    if (hour >= 17 && hour < 21) {
+        return `Good evening${formattedName}.`;
+    }
+    return `Working late${formattedName}?`;
+};
 
 
 
@@ -89,6 +109,28 @@ export default function Home() {
     const [rateLimit, setRateLimit] = useState<null | { message: string; untilMs: number; attempt?: number; maxAttempts?: number }>(null);
     const [rateLimitNow, setRateLimitNow] = useState(0);
     const [currentCwd, setCurrentCwd] = useState<string | null>(null);
+    const [username, setUsername] = useState<string>("");
+    const [settingsOpen, setSettingsOpen] = useState(false);
+    const [settingsModelSelectorOpen, setSettingsModelSelectorOpen] = useState(false);
+    const [defaultModel, setDefaultModel] = useState<{ id: string, label: string, provider: string }>({
+        id: 'gemini:gemini-3-flash-preview',
+        label: 'Gemini 3 Flash',
+        provider: 'google'
+    });
+
+    useEffect(() => {
+        const storedName = localStorage.getItem("parallax-username");
+        if (storedName) setUsername(storedName);
+
+        const storedModel = localStorage.getItem("parallax-default-model");
+        if (storedModel) {
+            try {
+                const parsed = JSON.parse(storedModel);
+                setDefaultModel(parsed);
+                setSelectedModel(parsed);
+            } catch (e) { }
+        }
+    }, []);
 
     useEffect(() => {
         if (!rateLimit) return;
@@ -304,7 +346,7 @@ export default function Home() {
             const res = await fetch(`${API_URL}/prompt`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ prompt: sendUserText, sessionId, model: selectedModel.id, yolo: yoloMode, mode: mode, cwd: currentCwd || currentSession?.cwd }),
+                body: JSON.stringify({ prompt: sendUserText, sessionId, model: selectedModel.id, yolo: yoloMode, mode: mode, cwd: currentCwd || currentSession?.cwd, username }),
                 signal: controller.signal
             });
 
@@ -673,6 +715,17 @@ export default function Home() {
                                 ))
                             )}
                         </div>
+                        {/* Settings Button */}
+                        <div className="p-3 border-t border-border/50">
+                            <Button
+                                variant="ghost"
+                                className="w-full flex items-center justify-start gap-2 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-white/5 rounded-md transition-colors"
+                                onClick={() => setSettingsOpen(true)}
+                            >
+                                <Gear className="w-4 h-4" />
+                                <span>Settings</span>
+                            </Button>
+                        </div>
                     </aside>
                 )}
 
@@ -685,7 +738,7 @@ export default function Home() {
                                 {blocks.length === 0 ? (
                                     <div className="py-24 flex flex-col gap-5">
                                         <div>
-                                            <h1 className="font-semibold text-xl md:text-2xl">Welcome to Parallax.</h1>
+                                            <h1 className="font-semibold text-xl md:text-2xl" suppressHydrationWarning>{getWelcomeMessage(username)}</h1>
                                             <p className="text-xl text-zinc-500 md:text-2xl">What should we build today?</p>
                                         </div>
                                         <Button
@@ -1228,6 +1281,63 @@ export default function Home() {
                     </CommandGroup>
                 </CommandList>
             </CommandDialog>
+            <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle>Settings</DialogTitle>
+                    </DialogHeader>
+                    <div className="flex flex-col gap-6 py-4">
+                        <div className="flex flex-col gap-2">
+                            <label className="text-sm font-medium">Username</label>
+                            <input
+                                type="text"
+                                value={username}
+                                onChange={(e) => {
+                                    setUsername(e.target.value);
+                                    localStorage.setItem("parallax-username", e.target.value);
+                                }}
+                                placeholder="Your name..."
+                                className="bg-transparent border border-border/50 rounded-md px-3 py-2 text-sm w-full focus:outline-none focus:border-primary transition-colors"
+                            />
+                            <p className="text-xs text-muted-foreground">The AI will use this name to personalize its responses.</p>
+                        </div>
+                        <div className="flex flex-col gap-2">
+                            <label className="text-sm font-medium">Default Model</label>
+                            <ModelSelector open={settingsModelSelectorOpen} onOpenChange={setSettingsModelSelectorOpen}>
+                                <ModelSelectorTrigger className="flex items-center gap-2 px-3 py-2 border border-border/40 hover:bg-white/5 rounded-md transition-colors cursor-pointer outline-none w-full">
+                                    <ModelSelectorLogo provider={defaultModel.provider.replace("ollama", "ollama-cloud")} />
+                                    <ModelSelectorName>{defaultModel.label}</ModelSelectorName>
+                                </ModelSelectorTrigger>
+                                <ModelSelectorContent title="Select Default Model" className="w-full sm:max-w-md">
+                                    <ModelSelectorInput placeholder="Search models..." />
+                                    <ModelSelectorList>
+                                        <ModelSelectorEmpty>No models found.</ModelSelectorEmpty>
+                                        {Array.from(new Set(availableModels.map(m => m.group))).map(group => (
+                                            <ModelSelectorGroup key={group} heading={group}>
+                                                {availableModels.filter(m => m.group === group).map(m => (
+                                                    <ModelSelectorItem
+                                                        key={m.id}
+                                                        onSelect={() => {
+                                                            const newModel = { id: m.id, label: m.label, provider: m.provider };
+                                                            setDefaultModel(newModel);
+                                                            localStorage.setItem("parallax-default-model", JSON.stringify(newModel));
+                                                            setSettingsModelSelectorOpen(false);
+                                                        }}
+                                                    >
+                                                        <ModelSelectorLogo provider={m.provider.replace("ollama", "ollama-cloud")} className="mr-2" />
+                                                        {m.label}
+                                                    </ModelSelectorItem>
+                                                ))}
+                                            </ModelSelectorGroup>
+                                        ))}
+                                    </ModelSelectorList>
+                                </ModelSelectorContent>
+                            </ModelSelector>
+                            <p className="text-xs text-muted-foreground">The model to use for new sessions.</p>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </main>
     );
 }
