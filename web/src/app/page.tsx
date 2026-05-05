@@ -730,73 +730,82 @@ export default function Home() {
                 )}
 
                 {/* Main Content Area */}
-                <div className="flex-1 flex flex-col overflow-hidden relative max-w-3xl w-full mx-auto">
-                    {/* Main Feed using AI Elements */}
-                    <div className="flex-1 overflow-hidden">
-                        <Conversation className="h-full">
-                            <ConversationContent className="px-6 py-8 gap-1">
-                                {blocks.length === 0 ? (
-                                    <div className="py-24 flex flex-col gap-5">
-                                        <div>
-                                            <h1 className="font-semibold text-xl md:text-2xl" suppressHydrationWarning>{getWelcomeMessage(username)}</h1>
-                                            <p className="text-xl text-zinc-500 md:text-2xl">What should we build today?</p>
-                                        </div>
-                                        <Button
-                                            variant="outline"
-                                            onClick={handleSelectDirectory}
-                                            className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-white/5 rounded-md transition-colors border border-border/30"
-                                        >
-                                            <Folder weight="bold" className="w-4 h-4" />
-                                            <span className="truncate">{currentCwd ? currentCwd.split(/[\\/]/).pop() : 'Open Folder...'}</span>
-                                        </Button>
-                                        {currentCwd && <div className="flex flex-col gap-2 mt-4">
-                                            <div className="flex flex-row items-center gap-2 text-muted-foreground text-sm"><ClockCounterClockwiseIcon /> Recent in this folder</div>
+                <div className="flex-1 relative flex flex-col overflow-hidden">
+                    {blocks.length === 0 && (
+                        <div className="absolute inset-0 z-0 pointer-events-none">
+                            <Image src="/bg.jpg" alt="Background" priority fill className="object-cover opacity-70 brightness-[0.3]" />
+                            <div className="absolute inset-0 bg-background/40 backdrop-blur-[2px]" />
+                        </div>
+                    )}
+                    <div className="flex-1 flex flex-col overflow-hidden relative max-w-3xl w-full mx-auto z-10">
+                        {/* Main Feed using AI Elements */}
+                        <div className="flex-1 overflow-hidden">
+                            <Conversation className="h-full">
+                                <ConversationContent className="px-6 py-8 gap-1">
+                                    {blocks.length === 0 ? (
+                                        <div className="py-24 flex flex-col gap-5 relative px-8">
+                                            <div className="relative z-10 flex flex-col gap-5">
                                             <div>
-                                                {availableSessions.length === 0 ? (
-                                                    <div className="px-3 py-4 text-xs text-muted-foreground text-center">No recent sessions</div>
-                                                ) : (
-                                                    groupedSessions.map(([folder, sessions]) => {
-                                                        if (folder !== currentCwd) return null;
-                                                        return (
-                                                            <div key={folder} className="flex flex-col gap-1">
-                                                                {sessions.map((session) => (
-                                                                    <div
-                                                                        key={session.id}
-                                                                        className={`group flex items-start justify-between px-3 py-2.5 rounded-md cursor-pointer transition-colors ${sessionId === session.id
-                                                                            ? "bg-white/10"
-                                                                            : "hover:bg-white/5"
-                                                                            }`}
-                                                                        onClick={() => loadSession(session.id)}
-                                                                    >
-                                                                        <div className="flex flex-col gap-0.5 truncate w-full pr-2">
-                                                                            <div className="flex items-center gap-2">
-                                                                                <ChatTeardrop weight={sessionId === session.id ? "fill" : "regular"} className={`w-3 h-3 shrink-0 ${sessionId === session.id ? "text-foreground" : "text-muted-foreground"}`} />
-                                                                                <span className={`truncate text-sm ${sessionId === session.id ? "text-foreground font-medium" : "text-muted-foreground"}`}>{session.displayName || session.id}</span>
-                                                                            </div>
-                                                                            <div className="text-[11px] text-muted-foreground/60 pl-5 truncate font-sans italic">
-                                                                                {session.lastMessage || 'Empty session...'}
-                                                                            </div>
-                                                                        </div>
-                                                                        <Button
-                                                                            variant="ghost"
-                                                                            size="icon-xs"
-                                                                            onClick={(e) => {
-                                                                                e.stopPropagation();
-                                                                                deleteSession(session.id);
-                                                                            }}
-                                                                            className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all focus:outline-none rounded"
-                                                                            title="Delete Session"
-                                                                        >
-                                                                            <Trash weight="fill" className="w-3.5 h-3.5" />
-                                                                        </Button>
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        )
-                                                    })
-                                                )}
+                                                <h1 className="font-semibold text-xl md:text-2xl text-white" suppressHydrationWarning>{getWelcomeMessage(username)}</h1>
+                                                <p className="text-xl text-zinc-400 md:text-2xl">What are we building?</p>
                                             </div>
-                                        </div>}
+                                            <Button
+                                                variant="outline"
+                                                onClick={handleSelectDirectory}
+                                                className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-zinc-300 hover:text-white hover:bg-white/10 rounded-md transition-colors border border-white/10 bg-black/20 backdrop-blur-md"
+                                            >
+                                                <Folder weight="bold" className="w-4 h-4" />
+                                                <span className="truncate">{currentCwd ? currentCwd.split(/[\\/]/).pop() : 'Open Folder...'}</span>
+                                            </Button>
+                                            {currentCwd && <div className="flex flex-col gap-2 mt-4">
+                                                <div className="flex flex-row items-center gap-2 text-zinc-400 text-sm"><ClockCounterClockwiseIcon /> Recent in this folder</div>
+                                                <div>
+                                                    {availableSessions.length === 0 ? (
+                                                        <div className="px-3 py-4 text-xs text-zinc-500 text-center">No recent sessions</div>
+                                                    ) : (
+                                                        groupedSessions.map(([folder, sessions]) => {
+                                                            if (folder !== currentCwd) return null;
+                                                            return (
+                                                                <div key={folder} className="flex flex-col gap-1">
+                                                                    {sessions.map((session) => (
+                                                                        <div
+                                                                            key={session.id}
+                                                                            className={`group flex items-start justify-between px-3 py-2.5 rounded-md cursor-pointer transition-colors ${sessionId === session.id
+                                                                                ? "bg-white/20"
+                                                                                : "hover:bg-white/10"
+                                                                                }`}
+                                                                            onClick={() => loadSession(session.id)}
+                                                                        >
+                                                                            <div className="flex flex-col gap-0.5 truncate w-full pr-2">
+                                                                                <div className="flex items-center gap-2">
+                                                                                    <ChatTeardrop weight={sessionId === session.id ? "fill" : "regular"} className={`w-3 h-3 shrink-0 ${sessionId === session.id ? "text-white" : "text-zinc-400"}`} />
+                                                                                    <span className={`truncate text-sm ${sessionId === session.id ? "text-white font-medium" : "text-zinc-300"}`}>{session.displayName || session.id}</span>
+                                                                                </div>
+                                                                                <div className="text-[11px] text-zinc-500 pl-5 truncate font-sans italic">
+                                                                                    {session.lastMessage || 'Empty session...'}
+                                                                                </div>
+                                                                            </div>
+                                                                            <Button
+                                                                                variant="ghost"
+                                                                                size="icon-xs"
+                                                                                onClick={(e) => {
+                                                                                    e.stopPropagation();
+                                                                                    deleteSession(session.id);
+                                                                                }}
+                                                                                className="opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-destructive transition-all focus:outline-none rounded"
+                                                                                title="Delete Session"
+                                                                            >
+                                                                                <Trash weight="fill" className="w-3.5 h-3.5" />
+                                                                            </Button>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            )
+                                                        })
+                                                    )}
+                                                </div>
+                                            </div>}
+                                        </div>
                                     </div>
                                 ) : (
                                     groupedBlocks.map((group, groupIdx) => {
@@ -1242,6 +1251,7 @@ export default function Home() {
                             </PromptInput>
                         </div>
                     </div>
+                </div>
                 </div>
             </div>
 
