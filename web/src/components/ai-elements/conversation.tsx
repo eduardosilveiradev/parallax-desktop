@@ -29,6 +29,7 @@ export const ConversationContent = ({
   ...props
 }: ConversationContentProps) => (
   <StickToBottom.Content
+    scrollClassName="overflow-y-auto overflow-x-hidden transform-gpu"
     className={cn("flex flex-col gap-8 p-4", className)}
     {...props}
   />

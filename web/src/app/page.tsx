@@ -227,6 +227,17 @@ export default function Home() {
         init();
     }, []);
 
+    useEffect(() => {
+        const handler = (e: KeyboardEvent) => {
+            if (e.key === 'Tab' && e.shiftKey) {
+                e.preventDefault();
+                setYoloMode(v => !v);
+            }
+        };
+        document.addEventListener('keydown', handler);
+        return () => document.removeEventListener('keydown', handler);
+    }, []);
+
     const loadSession = async (id: string) => {
         setSessionId(id);
         const hist = await fetch(`${API_URL}/history/${id}`).then(r => r.json());
@@ -571,7 +582,6 @@ export default function Home() {
         return (
             <main className="flex min-h-screen flex-col items-center justify-center p-24 bg-background">
                 <div className="flex flex-col items-center gap-4 text-muted-foreground">
-                    <Cpu weight="duotone" className="w-12 h-12" />
                     <Shimmer>Connecting to Parallax server...</Shimmer>
                 </div>
             </main>
@@ -745,513 +755,510 @@ export default function Home() {
                                     {blocks.length === 0 ? (
                                         <div className="py-24 flex flex-col gap-5 relative px-8">
                                             <div className="relative z-10 flex flex-col gap-5">
-                                            <div>
-                                                <h1 className="font-semibold text-xl md:text-2xl text-white" suppressHydrationWarning>{getWelcomeMessage(username)}</h1>
-                                                <p className="text-xl text-zinc-400 md:text-2xl">What are we building?</p>
-                                            </div>
-                                            <Button
-                                                variant="outline"
-                                                onClick={handleSelectDirectory}
-                                                className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-zinc-300 hover:text-white hover:bg-white/10 rounded-md transition-colors border border-white/10 bg-black/20 backdrop-blur-md"
-                                            >
-                                                <Folder weight="bold" className="w-4 h-4" />
-                                                <span className="truncate">{currentCwd ? currentCwd.split(/[\\/]/).pop() : 'Open Folder...'}</span>
-                                            </Button>
-                                            {currentCwd && <div className="flex flex-col gap-2 mt-4">
-                                                <div className="flex flex-row items-center gap-2 text-zinc-400 text-sm"><ClockCounterClockwiseIcon /> Recent in this folder</div>
                                                 <div>
-                                                    {availableSessions.length === 0 ? (
-                                                        <div className="px-3 py-4 text-xs text-zinc-500 text-center">No recent sessions</div>
-                                                    ) : (
-                                                        groupedSessions.map(([folder, sessions]) => {
-                                                            if (folder !== currentCwd) return null;
-                                                            return (
-                                                                <div key={folder} className="flex flex-col gap-1">
-                                                                    {sessions.map((session) => (
-                                                                        <div
-                                                                            key={session.id}
-                                                                            className={`group flex items-start justify-between px-3 py-2.5 rounded-md cursor-pointer transition-colors ${sessionId === session.id
-                                                                                ? "bg-white/20"
-                                                                                : "hover:bg-white/10"
-                                                                                }`}
-                                                                            onClick={() => loadSession(session.id)}
-                                                                        >
-                                                                            <div className="flex flex-col gap-0.5 truncate w-full pr-2">
-                                                                                <div className="flex items-center gap-2">
-                                                                                    <ChatTeardrop weight={sessionId === session.id ? "fill" : "regular"} className={`w-3 h-3 shrink-0 ${sessionId === session.id ? "text-white" : "text-zinc-400"}`} />
-                                                                                    <span className={`truncate text-sm ${sessionId === session.id ? "text-white font-medium" : "text-zinc-300"}`}>{session.displayName || session.id}</span>
+                                                    <h1 className="font-semibold text-xl md:text-2xl text-white" suppressHydrationWarning>{getWelcomeMessage(username)}</h1>
+                                                    <p className="text-xl text-zinc-400 md:text-2xl">What are we building?</p>
+                                                </div>
+                                                <Button
+                                                    variant="outline"
+                                                    onClick={handleSelectDirectory}
+                                                    className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-zinc-300 hover:text-white hover:bg-white/10 rounded-md transition-colors border border-white/10 bg-black/20 backdrop-blur-md"
+                                                >
+                                                    <Folder weight="bold" className="w-4 h-4" />
+                                                    <span className="truncate">{currentCwd ? currentCwd.split(/[\\/]/).pop() : 'Open Folder...'}</span>
+                                                </Button>
+                                                {currentCwd && <div className="flex flex-col gap-2 mt-4">
+                                                    <div className="flex flex-row items-center gap-2 text-zinc-400 text-sm"><ClockCounterClockwiseIcon /> Recent in this folder</div>
+                                                    <div>
+                                                        {availableSessions.length === 0 ? (
+                                                            <div className="px-3 py-4 text-xs text-zinc-500 text-center">No recent sessions</div>
+                                                        ) : (
+                                                            groupedSessions.map(([folder, sessions]) => {
+                                                                if (folder !== currentCwd) return null;
+                                                                return (
+                                                                    <div key={folder} className="flex flex-col gap-1">
+                                                                        {sessions.map((session) => (
+                                                                            <div
+                                                                                key={session.id}
+                                                                                className={`group flex items-start justify-between px-3 py-2.5 rounded-md cursor-pointer transition-colors ${sessionId === session.id
+                                                                                    ? "bg-white/20"
+                                                                                    : "hover:bg-white/10"
+                                                                                    }`}
+                                                                                onClick={() => loadSession(session.id)}
+                                                                            >
+                                                                                <div className="flex flex-col gap-0.5 truncate w-full pr-2">
+                                                                                    <div className="flex items-center gap-2">
+                                                                                        <ChatTeardrop weight={sessionId === session.id ? "fill" : "regular"} className={`w-3 h-3 shrink-0 ${sessionId === session.id ? "text-white" : "text-zinc-400"}`} />
+                                                                                        <span className={`truncate text-sm ${sessionId === session.id ? "text-white font-medium" : "text-zinc-300"}`}>{session.displayName || session.id}</span>
+                                                                                    </div>
+                                                                                    <div className="text-[11px] text-zinc-500 pl-5 truncate font-sans italic">
+                                                                                        {session.lastMessage || 'Empty session...'}
+                                                                                    </div>
                                                                                 </div>
-                                                                                <div className="text-[11px] text-zinc-500 pl-5 truncate font-sans italic">
-                                                                                    {session.lastMessage || 'Empty session...'}
+                                                                                <Button
+                                                                                    variant="ghost"
+                                                                                    size="icon-xs"
+                                                                                    onClick={(e) => {
+                                                                                        e.stopPropagation();
+                                                                                        deleteSession(session.id);
+                                                                                    }}
+                                                                                    className="opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-destructive transition-all focus:outline-none rounded"
+                                                                                    title="Delete Session"
+                                                                                >
+                                                                                    <Trash weight="fill" className="w-3.5 h-3.5" />
+                                                                                </Button>
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                )
+                                                            })
+                                                        )}
+                                                    </div>
+                                                </div>}
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        groupedBlocks.map((group, groupIdx) => {
+                                            const isLast = groupIdx === groupedBlocks.length - 1;
+
+                                            if (group.type === 'single') {
+                                                const b = group.block;
+                                                if (b.type === 'user') {
+                                                    return (
+                                                        <Message key={b.id} from="user">
+                                                            <MessageContent className="whitespace-pre-wrap font-sans text-sm pb-8">
+                                                                {b.text}
+                                                            </MessageContent>
+                                                        </Message>
+                                                    );
+                                                }
+
+                                                if (b.type === 'assistant') {
+                                                    const isStreamingBlock = streaming && isLast && groupIdx === groupedBlocks.length - 1;
+
+                                                    // Find if there's an associated plan in the current conversation turn
+                                                    const previousBlocks = blocks.slice(0, blocks.indexOf(b));
+                                                    const lastUserIdx = previousBlocks.map(x => x.type).lastIndexOf('user');
+                                                    const currentTurnPlan = previousBlocks.slice(lastUserIdx + 1).find(x => x.type === 'tool-call' && x.call.name.toLowerCase() === 'createplan' && x.call.status === 'done') as any;
+
+                                                    return (
+                                                        <Message key={b.id} from="assistant">
+                                                            <MessageContent>
+                                                                <MessageResponse className="font-sans text-sm text-foreground opacity-90 leading-relaxed pb-6">
+                                                                    {b.text || (isStreamingBlock ? '' : '<empty response>')}
+                                                                </MessageResponse>
+
+                                                                {currentTurnPlan && (
+                                                                    <Plan className="my-2 border-border/40 overflow-hidden">
+                                                                        <PlanHeader className="">
+                                                                            <div className="flex items-center gap-3">
+                                                                                <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                                                                                    <Strategy weight="duotone" className="w-4 h-4" />
                                                                                 </div>
+                                                                                <div className="flex-1">
+                                                                                    <PlanTitle className="text-sm font-bold tracking-tight">Active Strategic Plan</PlanTitle>
+                                                                                    <PlanDescription className="text-[11px] opacity-70">
+                                                                                        {currentTurnPlan.call.args.name || "Implementation roadmap"}
+                                                                                    </PlanDescription>
+                                                                                </div>
+                                                                            </div>
+                                                                            <PlanTrigger />
+                                                                        </PlanHeader>
+                                                                        <PlanContent className="pt-4 px-6 pb-6 border-t border-border/10">
+                                                                            <div className="space-y-5">
+                                                                                {currentTurnPlan.call.args.overview && (
+                                                                                    <div className="space-y-1.5">
+                                                                                        <h4 className="text-[10px] font-black uppercase tracking-widest text-primary">Mission Overview</h4>
+                                                                                        <p className="text-sm leading-relaxed text-foreground/80">{currentTurnPlan.call.args.overview}</p>
+                                                                                    </div>
+                                                                                )}
+                                                                                {currentTurnPlan.call.args.plan && (
+                                                                                    <div className="space-y-1.5">
+                                                                                        <h4 className="text-[10px] font-black uppercase tracking-widest text-primary">Execution Strategy</h4>
+                                                                                        <div className="text-sm whitespace-pre-wrap leading-relaxed text-foreground/80 font-sans">{currentTurnPlan.call.args.plan}</div>
+                                                                                    </div>
+                                                                                )}
+                                                                            </div>
+                                                                        </PlanContent>
+                                                                        <PlanFooter className="bg-card flex items-center justify-between py-3 px-6 border-t border-border/10">
+                                                                            <div className="text-[10px] font-mono text-muted-foreground/60">
+                                                                                ID: {currentTurnPlan.call.result.artifactId}
                                                                             </div>
                                                                             <Button
-                                                                                variant="ghost"
-                                                                                size="icon-xs"
-                                                                                onClick={(e) => {
-                                                                                    e.stopPropagation();
-                                                                                    deleteSession(session.id);
-                                                                                }}
-                                                                                className="opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-destructive transition-all focus:outline-none rounded"
-                                                                                title="Delete Session"
+                                                                                onClick={() => onSubmit("Confirming plan execution. Please start.")}
                                                                             >
-                                                                                <Trash weight="fill" className="w-3.5 h-3.5" />
+                                                                                <PuzzlePiece weight="bold" className="w-3.5 h-3.5" />
+                                                                                Build
                                                                             </Button>
-                                                                        </div>
-                                                                    ))}
-                                                                </div>
-                                                            )
-                                                        })
-                                                    )}
-                                                </div>
-                                            </div>}
-                                        </div>
-                                    </div>
-                                ) : (
-                                    groupedBlocks.map((group, groupIdx) => {
-                                        const isLast = groupIdx === groupedBlocks.length - 1;
+                                                                        </PlanFooter>
+                                                                    </Plan>
+                                                                )}
+                                                            </MessageContent>
+                                                        </Message>
+                                                    );
+                                                }
+                                            }
 
-                                        if (group.type === 'single') {
-                                            const b = group.block;
-                                            if (b.type === 'user') {
+                                            if (group.type === 'work') {
                                                 return (
-                                                    <Message key={b.id} from="user">
-                                                        <MessageContent className="whitespace-pre-wrap font-sans text-sm pb-8">
-                                                            {b.text}
-                                                        </MessageContent>
-                                                    </Message>
+                                                    <WorkGroup
+                                                        key={group.id}
+                                                        group={group}
+                                                        streaming={streaming}
+                                                        isLast={isLast}
+                                                        onApprove={handleApprove}
+                                                        onReject={handleReject}
+                                                        onSubmit={onSubmit}
+                                                    />
                                                 );
                                             }
 
-                                            if (b.type === 'assistant') {
-                                                const isStreamingBlock = streaming && isLast && groupIdx === groupedBlocks.length - 1;
+                                            return null;
+                                        })
+                                    )}
 
-                                                // Find if there's an associated plan in the current conversation turn
-                                                const previousBlocks = blocks.slice(0, blocks.indexOf(b));
-                                                const lastUserIdx = previousBlocks.map(x => x.type).lastIndexOf('user');
-                                                const currentTurnPlan = previousBlocks.slice(lastUserIdx + 1).find(x => x.type === 'tool-call' && x.call.name.toLowerCase() === 'createplan' && x.call.status === 'done') as any;
+                                    {(() => {
+                                        const lastGroup = groupedBlocks[groupedBlocks.length - 1];
+                                        const isWorkPending = streaming && (!lastGroup || (lastGroup.type === 'single' && lastGroup.block.type === 'user'));
 
-                                                return (
-                                                    <Message key={b.id} from="assistant">
-                                                        <MessageContent>
-                                                            <MessageResponse className="font-sans text-sm text-foreground opacity-90 leading-relaxed pb-6">
-                                                                {b.text || (isStreamingBlock ? '' : '<empty response>')}
-                                                            </MessageResponse>
-
-                                                            {currentTurnPlan && (
-                                                                <Plan className="my-2 border-border/40 overflow-hidden">
-                                                                    <PlanHeader className="">
-                                                                        <div className="flex items-center gap-3">
-                                                                            <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-                                                                                <Strategy weight="duotone" className="w-4 h-4" />
-                                                                            </div>
-                                                                            <div className="flex-1">
-                                                                                <PlanTitle className="text-sm font-bold tracking-tight">Active Strategic Plan</PlanTitle>
-                                                                                <PlanDescription className="text-[11px] opacity-70">
-                                                                                    {currentTurnPlan.call.args.name || "Implementation roadmap"}
-                                                                                </PlanDescription>
-                                                                            </div>
-                                                                        </div>
-                                                                        <PlanTrigger />
-                                                                    </PlanHeader>
-                                                                    <PlanContent className="pt-4 px-6 pb-6 border-t border-border/10">
-                                                                        <div className="space-y-5">
-                                                                            {currentTurnPlan.call.args.overview && (
-                                                                                <div className="space-y-1.5">
-                                                                                    <h4 className="text-[10px] font-black uppercase tracking-widest text-primary">Mission Overview</h4>
-                                                                                    <p className="text-sm leading-relaxed text-foreground/80">{currentTurnPlan.call.args.overview}</p>
-                                                                                </div>
-                                                                            )}
-                                                                            {currentTurnPlan.call.args.plan && (
-                                                                                <div className="space-y-1.5">
-                                                                                    <h4 className="text-[10px] font-black uppercase tracking-widest text-primary">Execution Strategy</h4>
-                                                                                    <div className="text-sm whitespace-pre-wrap leading-relaxed text-foreground/80 font-sans">{currentTurnPlan.call.args.plan}</div>
-                                                                                </div>
-                                                                            )}
-                                                                        </div>
-                                                                    </PlanContent>
-                                                                    <PlanFooter className="bg-card flex items-center justify-between py-3 px-6 border-t border-border/10">
-                                                                        <div className="text-[10px] font-mono text-muted-foreground/60">
-                                                                            ID: {currentTurnPlan.call.result.artifactId}
-                                                                        </div>
-                                                                        <Button
-                                                                            onClick={() => onSubmit("Confirming plan execution. Please start.")}
-                                                                        >
-                                                                            <PuzzlePiece weight="bold" className="w-3.5 h-3.5" />
-                                                                            Build
-                                                                        </Button>
-                                                                    </PlanFooter>
-                                                                </Plan>
-                                                            )}
-                                                        </MessageContent>
-                                                    </Message>
-                                                );
-                                            }
-                                        }
-
-                                        if (group.type === 'work') {
+                                        if (isWorkPending) {
                                             return (
-                                                <WorkGroup
-                                                    key={group.id}
-                                                    group={group}
-                                                    streaming={streaming}
-                                                    isLast={isLast}
-                                                    onApprove={handleApprove}
-                                                    onReject={handleReject}
-                                                    onSubmit={onSubmit}
-                                                />
+                                                <Message from="assistant">
+                                                    <MessageContent>
+                                                        <Shimmer>Working...</Shimmer>
+                                                    </MessageContent>
+                                                </Message>
                                             );
                                         }
-
                                         return null;
-                                    })
+                                    })()}
+                                    <ConversationScrollButton />
+                                </ConversationContent>
+                            </Conversation>
+                        </div>
+
+                        {/* Input */}
+                        <div className="shrink-0 p-6 backdrop-blur-md relative z-10 w-full">
+                            <div className="max-w-3xl mx-auto relative group">
+                                {blocks.length > 0 && (
+                                    <TodoList
+                                        todos={todos as any}
+                                        onToggle={handleToggleTodo}
+                                        className="mb-8"
+                                    />
+                                )}
+                                {rateLimit && (
+                                    <div className="mb-3 rounded-lg border border-border/60 bg-destructive/5 p-3">
+                                        <div className="flex items-center justify-between gap-3">
+                                            <div className="text-sm text-destructive font-medium">
+                                                Rate limited
+                                            </div>
+                                            <div className="text-xs text-muted-foreground font-mono">
+                                                {(() => {
+                                                    const remaining = Math.max(0, rateLimit.untilMs - (rateLimitNow || Date.now()));
+                                                    const s = (remaining / 1000).toFixed(1);
+                                                    const attemptText = rateLimit.attempt && rateLimit.maxAttempts ? ` • attempt ${rateLimit.attempt}/${rateLimit.maxAttempts}` : '';
+                                                    return `retrying in ${s}s${attemptText}`;
+                                                })()}
+                                            </div>
+                                        </div>
+                                        <div className="mt-1 text-xs text-muted-foreground font-mono wrap-break-word">
+                                            {rateLimit.message}
+                                        </div>
+                                    </div>
+                                )}
+                                {pendingAskQuestion && (
+                                    <Card className="mb-4 shadow-xl shadow-black/20 overflow-hidden border-border/40">
+                                        <CardHeader className="border-b bg-muted/5 py-3">
+                                            <div className="flex items-center justify-between">
+                                                <CardTitle className="text-sm font-bold flex items-center gap-2">
+                                                    <Question className="w-4 h-4 text-primary" />
+                                                    {pendingAskQuestion.call.args?.title || "Clarification Required"}
+                                                </CardTitle>
+                                            </div>
+                                        </CardHeader>
+                                        <CardContent className="py-5">
+                                            <div className="space-y-6">
+                                                {(pendingAskQuestion.call.args?.questions || []).map((q: any) => {
+                                                    const allowMultiple = !!q.allow_multiple;
+                                                    const current = askAnswers[q.id];
+                                                    const currentSet = new Set(Array.isArray(current) ? current : current ? [String(current)] : []);
+
+                                                    return (
+                                                        <div key={q.id} className="space-y-3">
+                                                            <div className="text-sm font-medium leading-none">{q.prompt}</div>
+                                                            <div className="flex flex-col gap-1.5">
+                                                                {(q.options || []).map((opt: any) => {
+                                                                    const checked = currentSet.has(String(opt.id));
+                                                                    return (
+                                                                        <div
+                                                                            key={opt.id}
+                                                                            onClick={() => {
+                                                                                setAskAnswers((prev) => {
+                                                                                    const next = { ...prev };
+                                                                                    const prevVal = next[q.id];
+                                                                                    const prevSet = new Set(Array.isArray(prevVal) ? prevVal : prevVal ? [String(prevVal)] : []);
+                                                                                    const id = String(opt.id);
+                                                                                    if (allowMultiple) {
+                                                                                        if (!checked) prevSet.add(id);
+                                                                                        else prevSet.delete(id);
+                                                                                        next[q.id] = Array.from(prevSet);
+                                                                                    } else {
+                                                                                        next[q.id] = id;
+                                                                                    }
+                                                                                    return next;
+                                                                                });
+                                                                            }}
+                                                                            className={cn(
+                                                                                "flex items-center gap-3 px-3 py-2 text-sm rounded-lg cursor-pointer transition-all border border-transparent",
+                                                                                checked
+                                                                                    ? "bg-primary/10 border-primary/20 text-primary ring-1 ring-primary/20"
+                                                                                    : "bg-muted/5 hover:bg-muted/10 text-muted-foreground border-border/10"
+                                                                            )}
+                                                                        >
+                                                                            <div className={cn(
+                                                                                "size-4 rounded border flex items-center justify-center transition-all",
+                                                                                checked ? "bg-primary border-primary text-primary-foreground" : "border-border/60 bg-transparent",
+                                                                                !allowMultiple && "rounded-full"
+                                                                            )}>
+                                                                                {checked && <div className={cn("size-1.5 bg-current", !allowMultiple ? "rounded-full" : "rounded-sm")} />}
+                                                                            </div>
+                                                                            <span className="flex-1">{opt.label}</span>
+                                                                        </div>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </CardContent>
+                                        <CardFooter className="bg-muted/10 flex items-center justify-between py-3">
+                                            <div className="flex items-center gap-2">
+                                                <Button
+                                                    size="sm"
+                                                    onClick={async () => {
+                                                        const callId = pendingAskQuestion.call.id;
+                                                        await fetch(`${API_URL}/tool-response`, {
+                                                            method: 'POST',
+                                                            headers: { 'Content-Type': 'application/json' },
+                                                            body: JSON.stringify({ toolCallId: callId, payload: { answers: askAnswers } })
+                                                        });
+                                                        setAskAnswers({});
+                                                    }}
+                                                >
+                                                    Submit Answers
+                                                </Button>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={async () => {
+                                                        const callId = pendingAskQuestion.call.id;
+                                                        await fetch(`${API_URL}/tool-response`, {
+                                                            method: 'POST',
+                                                            headers: { 'Content-Type': 'application/json' },
+                                                            body: JSON.stringify({ toolCallId: callId, payload: { cancelled: true } })
+                                                        });
+                                                        setAskAnswers({});
+                                                    }}
+                                                >
+                                                    Cancel
+                                                </Button>
+                                            </div>
+                                        </CardFooter>
+                                    </Card>
                                 )}
 
                                 {(() => {
-                                    const lastGroup = groupedBlocks[groupedBlocks.length - 1];
-                                    const isWorkPending = streaming && (!lastGroup || (lastGroup.type === 'single' && lastGroup.block.type === 'user'));
+                                    const showSlashMenu = input.startsWith('/');
+                                    const slashCommands = [
+                                        { value: '/model', label: '/model', desc: 'Change the current model', action: () => setModelSelectorOpen(true), icon: <Cpu weight="duotone" className="w-4 h-4 text-muted-foreground mr-2" /> },
+                                        { value: '/new', label: '/new (or /clear)', desc: 'Starts a brand new session and clears the screen', action: createNewSession, icon: <Trash weight="duotone" className="w-4 h-4 text-muted-foreground mr-2" /> },
+                                        { value: '/init', label: '/init', desc: 'Analyze codebase and create PARALLAX.md', action: () => onSubmit('/init'), icon: <TerminalWindow weight="duotone" className="w-4 h-4 text-muted-foreground mr-2" /> },
+                                        { value: '/compact', label: '/compact', desc: 'Summarize and compress conversation history to save tokens', action: () => onSubmit('/compact'), icon: <Archive weight="duotone" className="w-4 h-4 text-muted-foreground mr-2" /> },
+                                        { value: '/load', label: '/load', desc: 'Loads or switches to a historical session memory', action: () => setSidebarOpen(true), icon: <ListDashes weight="duotone" className="w-4 h-4 text-muted-foreground mr-2" /> },
+                                        { value: '/skills', label: '/skills', desc: 'Install new agent skills from skills.sh locally or globally', action: () => onSubmit('/skills'), icon: <PuzzlePiece weight="duotone" className="w-4 h-4 text-muted-foreground mr-2" /> },
+                                        { value: '/commit', label: '/commit', desc: 'Creates a commit with the current changes, then pushes', action: () => onSubmit('/commit'), icon: <GitCommit weight="duotone" className="w-4 h-4 text-muted-foreground mr-2" /> },
+                                        { value: '/commit:pr', label: '/commit:pr', desc: 'Creates a commit, pushes, and uses the GitHub CLI to open a pull request', action: () => onSubmit('/commit:pr'), icon: <GitPullRequest weight="duotone" className="w-4 h-4 text-muted-foreground mr-2" /> },
+                                        { value: '/commit:no-push', label: '/commit:no-push', desc: 'Creates a commit with the current changes without pushing', action: () => onSubmit('/commit:no-push'), icon: <GitCommit weight="duotone" className="w-4 h-4 text-muted-foreground mr-2" /> },
+                                        { value: '/parallax', label: '/parallax', desc: 'Spawns a Master Coordinator Agent to orchestrate subagents for a large task', action: () => onSubmit('/parallax'), icon: <Atom weight="duotone" className="w-4 h-4 text-muted-foreground mr-2" /> },
+                                        { value: '/help', label: '/help', desc: 'Show available capabilities', action: () => onSubmit("/help"), icon: <Question weight="duotone" className="w-4 h-4 text-muted-foreground mr-2" /> }
+                                    ];
+                                    const filtered = slashCommands.filter(c => c.value.startsWith(input.trim().toLowerCase()));
 
-                                    if (isWorkPending) {
-                                        return (
-                                            <Message from="assistant">
-                                                <MessageContent>
-                                                    <Shimmer>Working...</Shimmer>
-                                                </MessageContent>
-                                            </Message>
-                                        );
-                                    }
-                                    return null;
+                                    return showSlashMenu && (
+                                        <div className="absolute bottom-[calc(100%+8px)] left-0 w-100 rounded-lg border border-border/60 bg-popover/90 backdrop-blur-md shadow-lg overflow-hidden animate-in slide-in-from-bottom-2 fade-in z-50">
+                                            <PromptInputCommand
+                                                className="bg-transparent border-none outline-none"
+                                                value={slashCommandValue}
+                                                onValueChange={setSlashCommandValue}
+                                            >
+                                                <PromptInputCommandList>
+                                                    {filtered.length === 0 && (
+                                                        <PromptInputCommandEmpty className="py-6 text-center text-sm text-muted-foreground">No command found.</PromptInputCommandEmpty>
+                                                    )}
+                                                    {filtered.length > 0 && (
+                                                        <PromptInputCommandGroup heading="Slash Commands">
+                                                            {filtered.map(cmd => (
+                                                                <PromptInputCommandItem
+                                                                    key={cmd.value}
+                                                                    value={cmd.value}
+                                                                    onSelect={() => {
+                                                                        setInput("");
+                                                                        cmd.action();
+                                                                    }}
+                                                                    className="flex items-center cursor-pointer py-2 px-3"
+                                                                >
+                                                                    {cmd.icon}
+                                                                    <span className="font-medium mr-2">{cmd.label}</span>
+                                                                    <span className="text-muted-foreground text-xs">{cmd.desc}</span>
+                                                                </PromptInputCommandItem>
+                                                            ))}
+                                                        </PromptInputCommandGroup>
+                                                    )}
+                                                </PromptInputCommandList>
+                                            </PromptInputCommand>
+                                        </div>
+                                    );
                                 })()}
-                                <ConversationScrollButton />
-                            </ConversationContent>
-                        </Conversation>
-                    </div>
+                                <PromptInput onSubmit={({ text }) => { if (!streaming) { setInput(text); onSubmit(text); } }}>
+                                    <PromptInputBody className="relative has-disabled:opacity-100 disabled:opacity-100">
+                                        <PromptInputTextarea
+                                            value={input}
+                                            onChange={e => setInput(e.target.value)}
+                                            onKeyDown={e => {
+                                                if (input.startsWith('/')) {
+                                                    const slashCommands = [
+                                                        { value: '/model', action: () => setModelSelectorOpen(true) },
+                                                        { value: '/new', action: createNewSession },
+                                                        { value: '/clear', action: createNewSession },
+                                                        { value: '/init', action: () => onSubmit('/init') },
+                                                        { value: '/compact', action: () => onSubmit('/compact') },
+                                                        { value: '/load', action: () => setSidebarOpen(true) },
+                                                        { value: '/skills', action: () => onSubmit('/skills') },
+                                                        { value: '/commit', action: () => onSubmit('/commit') },
+                                                        { value: '/commit:pr', action: () => onSubmit('/commit:pr') },
+                                                        { value: '/commit:no-push', action: () => onSubmit('/commit:no-push') },
+                                                        { value: '/parallax', action: () => onSubmit(input) }, // pass full input for parallax args
+                                                        { value: '/help', action: () => onSubmit('/help') }
+                                                    ];
+                                                    const filtered = slashCommands.filter(c => c.value.startsWith(input.trim().toLowerCase()));
 
-                    {/* Input */}
-                    <div className="shrink-0 p-6 backdrop-blur-md relative z-10 w-full">
-                        <div className="max-w-3xl mx-auto relative group">
-                            {blocks.length > 0 && (
-                                <TodoList
-                                    todos={todos as any}
-                                    onToggle={handleToggleTodo}
-                                    className="mb-8"
-                                />
-                            )}
-                            {rateLimit && (
-                                <div className="mb-3 rounded-lg border border-border/60 bg-destructive/5 p-3">
-                                    <div className="flex items-center justify-between gap-3">
-                                        <div className="text-sm text-destructive font-medium">
-                                            Rate limited
-                                        </div>
-                                        <div className="text-xs text-muted-foreground font-mono">
-                                            {(() => {
-                                                const remaining = Math.max(0, rateLimit.untilMs - (rateLimitNow || Date.now()));
-                                                const s = (remaining / 1000).toFixed(1);
-                                                const attemptText = rateLimit.attempt && rateLimit.maxAttempts ? ` • attempt ${rateLimit.attempt}/${rateLimit.maxAttempts}` : '';
-                                                return `retrying in ${s}s${attemptText}`;
-                                            })()}
-                                        </div>
-                                    </div>
-                                    <div className="mt-1 text-xs text-muted-foreground font-mono wrap-break-word">
-                                        {rateLimit.message}
-                                    </div>
-                                </div>
-                            )}
-                            {pendingAskQuestion && (
-                                <Card className="mb-4 shadow-xl shadow-black/20 overflow-hidden border-border/40">
-                                    <CardHeader className="border-b bg-muted/5 py-3">
-                                        <div className="flex items-center justify-between">
-                                            <CardTitle className="text-sm font-bold flex items-center gap-2">
-                                                <Question className="w-4 h-4 text-primary" />
-                                                {pendingAskQuestion.call.args?.title || "Clarification Required"}
-                                            </CardTitle>
-                                        </div>
-                                    </CardHeader>
-                                    <CardContent className="py-5">
-                                        <div className="space-y-6">
-                                            {(pendingAskQuestion.call.args?.questions || []).map((q: any) => {
-                                                const allowMultiple = !!q.allow_multiple;
-                                                const current = askAnswers[q.id];
-                                                const currentSet = new Set(Array.isArray(current) ? current : current ? [String(current)] : []);
+                                                    if (filtered.length > 0) {
+                                                        const currentIndex = filtered.findIndex(c => c.value === slashCommandValue);
 
-                                                return (
-                                                    <div key={q.id} className="space-y-3">
-                                                        <div className="text-sm font-medium leading-none">{q.prompt}</div>
-                                                        <div className="flex flex-col gap-1.5">
-                                                            {(q.options || []).map((opt: any) => {
-                                                                const checked = currentSet.has(String(opt.id));
-                                                                return (
-                                                                    <div
-                                                                        key={opt.id}
-                                                                        onClick={() => {
-                                                                            setAskAnswers((prev) => {
-                                                                                const next = { ...prev };
-                                                                                const prevVal = next[q.id];
-                                                                                const prevSet = new Set(Array.isArray(prevVal) ? prevVal : prevVal ? [String(prevVal)] : []);
-                                                                                const id = String(opt.id);
-                                                                                if (allowMultiple) {
-                                                                                    if (!checked) prevSet.add(id);
-                                                                                    else prevSet.delete(id);
-                                                                                    next[q.id] = Array.from(prevSet);
-                                                                                } else {
-                                                                                    next[q.id] = id;
-                                                                                }
-                                                                                return next;
-                                                                            });
-                                                                        }}
-                                                                        className={cn(
-                                                                            "flex items-center gap-3 px-3 py-2 text-sm rounded-lg cursor-pointer transition-all border border-transparent",
-                                                                            checked
-                                                                                ? "bg-primary/10 border-primary/20 text-primary ring-1 ring-primary/20"
-                                                                                : "bg-muted/5 hover:bg-muted/10 text-muted-foreground border-border/10"
-                                                                        )}
-                                                                    >
-                                                                        <div className={cn(
-                                                                            "size-4 rounded border flex items-center justify-center transition-all",
-                                                                            checked ? "bg-primary border-primary text-primary-foreground" : "border-border/60 bg-transparent",
-                                                                            !allowMultiple && "rounded-full"
-                                                                        )}>
-                                                                            {checked && <div className={cn("size-1.5 bg-current", !allowMultiple ? "rounded-full" : "rounded-sm")} />}
-                                                                        </div>
-                                                                        <span className="flex-1">{opt.label}</span>
-                                                                    </div>
-                                                                );
-                                                            })}
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    </CardContent>
-                                    <CardFooter className="bg-muted/10 flex items-center justify-between py-3">
-                                        <div className="flex items-center gap-2">
-                                            <Button
-                                                size="sm"
-                                                onClick={async () => {
-                                                    const callId = pendingAskQuestion.call.id;
-                                                    await fetch(`${API_URL}/tool-response`, {
-                                                        method: 'POST',
-                                                        headers: { 'Content-Type': 'application/json' },
-                                                        body: JSON.stringify({ toolCallId: callId, payload: { answers: askAnswers } })
-                                                    });
-                                                    setAskAnswers({});
-                                                }}
-                                            >
-                                                Submit Answers
-                                            </Button>
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={async () => {
-                                                    const callId = pendingAskQuestion.call.id;
-                                                    await fetch(`${API_URL}/tool-response`, {
-                                                        method: 'POST',
-                                                        headers: { 'Content-Type': 'application/json' },
-                                                        body: JSON.stringify({ toolCallId: callId, payload: { cancelled: true } })
-                                                    });
-                                                    setAskAnswers({});
-                                                }}
-                                            >
-                                                Cancel
-                                            </Button>
-                                        </div>
-                                    </CardFooter>
-                                </Card>
-                            )}
-
-                            {(() => {
-                                const showSlashMenu = input.startsWith('/');
-                                const slashCommands = [
-                                    { value: '/model', label: '/model', desc: 'Change the current model', action: () => setModelSelectorOpen(true), icon: <Cpu weight="duotone" className="w-4 h-4 text-muted-foreground mr-2" /> },
-                                    { value: '/new', label: '/new (or /clear)', desc: 'Starts a brand new session and clears the screen', action: createNewSession, icon: <Trash weight="duotone" className="w-4 h-4 text-muted-foreground mr-2" /> },
-                                    { value: '/init', label: '/init', desc: 'Analyze codebase and create PARALLAX.md', action: () => onSubmit('/init'), icon: <TerminalWindow weight="duotone" className="w-4 h-4 text-muted-foreground mr-2" /> },
-                                    { value: '/compact', label: '/compact', desc: 'Summarize and compress conversation history to save tokens', action: () => onSubmit('/compact'), icon: <Archive weight="duotone" className="w-4 h-4 text-muted-foreground mr-2" /> },
-                                    { value: '/load', label: '/load', desc: 'Loads or switches to a historical session memory', action: () => setSidebarOpen(true), icon: <ListDashes weight="duotone" className="w-4 h-4 text-muted-foreground mr-2" /> },
-                                    { value: '/skills', label: '/skills', desc: 'Install new agent skills from skills.sh locally or globally', action: () => onSubmit('/skills'), icon: <PuzzlePiece weight="duotone" className="w-4 h-4 text-muted-foreground mr-2" /> },
-                                    { value: '/commit', label: '/commit', desc: 'Creates a commit with the current changes, then pushes', action: () => onSubmit('/commit'), icon: <GitCommit weight="duotone" className="w-4 h-4 text-muted-foreground mr-2" /> },
-                                    { value: '/commit:pr', label: '/commit:pr', desc: 'Creates a commit, pushes, and uses the GitHub CLI to open a pull request', action: () => onSubmit('/commit:pr'), icon: <GitPullRequest weight="duotone" className="w-4 h-4 text-muted-foreground mr-2" /> },
-                                    { value: '/commit:no-push', label: '/commit:no-push', desc: 'Creates a commit with the current changes without pushing', action: () => onSubmit('/commit:no-push'), icon: <GitCommit weight="duotone" className="w-4 h-4 text-muted-foreground mr-2" /> },
-                                    { value: '/parallax', label: '/parallax', desc: 'Spawns a Master Coordinator Agent to orchestrate subagents for a large task', action: () => onSubmit('/parallax'), icon: <Atom weight="duotone" className="w-4 h-4 text-muted-foreground mr-2" /> },
-                                    { value: '/help', label: '/help', desc: 'Show available capabilities', action: () => onSubmit("/help"), icon: <Question weight="duotone" className="w-4 h-4 text-muted-foreground mr-2" /> }
-                                ];
-                                const filtered = slashCommands.filter(c => c.value.startsWith(input.trim().toLowerCase()));
-
-                                return showSlashMenu && (
-                                    <div className="absolute bottom-[calc(100%+8px)] left-0 w-100 rounded-lg border border-border/60 bg-popover/90 backdrop-blur-md shadow-lg overflow-hidden animate-in slide-in-from-bottom-2 fade-in z-50">
-                                        <PromptInputCommand
-                                            className="bg-transparent border-none outline-none"
-                                            value={slashCommandValue}
-                                            onValueChange={setSlashCommandValue}
-                                        >
-                                            <PromptInputCommandList>
-                                                {filtered.length === 0 && (
-                                                    <PromptInputCommandEmpty className="py-6 text-center text-sm text-muted-foreground">No command found.</PromptInputCommandEmpty>
-                                                )}
-                                                {filtered.length > 0 && (
-                                                    <PromptInputCommandGroup heading="Slash Commands">
-                                                        {filtered.map(cmd => (
-                                                            <PromptInputCommandItem
-                                                                key={cmd.value}
-                                                                value={cmd.value}
-                                                                onSelect={() => {
-                                                                    setInput("");
-                                                                    cmd.action();
-                                                                }}
-                                                                className="flex items-center cursor-pointer py-2 px-3"
-                                                            >
-                                                                {cmd.icon}
-                                                                <span className="font-medium mr-2">{cmd.label}</span>
-                                                                <span className="text-muted-foreground text-xs">{cmd.desc}</span>
-                                                            </PromptInputCommandItem>
-                                                        ))}
-                                                    </PromptInputCommandGroup>
-                                                )}
-                                            </PromptInputCommandList>
-                                        </PromptInputCommand>
-                                    </div>
-                                );
-                            })()}
-                            <PromptInput onSubmit={({ text }) => { if (!streaming) { setInput(text); onSubmit(text); } }}>
-                                <PromptInputBody className="relative has-disabled:opacity-100 disabled:opacity-100">
-                                    <PromptInputTextarea
-                                        value={input}
-                                        onChange={e => setInput(e.target.value)}
-                                        onKeyDown={e => {
-                                            if (input.startsWith('/')) {
-                                                const slashCommands = [
-                                                    { value: '/model', action: () => setModelSelectorOpen(true) },
-                                                    { value: '/new', action: createNewSession },
-                                                    { value: '/clear', action: createNewSession },
-                                                    { value: '/init', action: () => onSubmit('/init') },
-                                                    { value: '/compact', action: () => onSubmit('/compact') },
-                                                    { value: '/load', action: () => setSidebarOpen(true) },
-                                                    { value: '/skills', action: () => onSubmit('/skills') },
-                                                    { value: '/commit', action: () => onSubmit('/commit') },
-                                                    { value: '/commit:pr', action: () => onSubmit('/commit:pr') },
-                                                    { value: '/commit:no-push', action: () => onSubmit('/commit:no-push') },
-                                                    { value: '/parallax', action: () => onSubmit(input) }, // pass full input for parallax args
-                                                    { value: '/help', action: () => onSubmit('/help') }
-                                                ];
-                                                const filtered = slashCommands.filter(c => c.value.startsWith(input.trim().toLowerCase()));
-
-                                                if (filtered.length > 0) {
-                                                    const currentIndex = filtered.findIndex(c => c.value === slashCommandValue);
-
-                                                    if (e.key === 'ArrowDown') {
-                                                        e.preventDefault();
-                                                        const nextIdx = currentIndex === -1 ? 0 : (currentIndex + 1) % filtered.length;
-                                                        setSlashCommandValue(filtered[nextIdx].value);
-                                                    } else if (e.key === 'ArrowUp') {
-                                                        e.preventDefault();
-                                                        const nextIdx = currentIndex === -1 ? filtered.length - 1 : (currentIndex - 1 + filtered.length) % filtered.length;
-                                                        setSlashCommandValue(filtered[nextIdx].value);
-                                                    } else if (e.key === 'Enter') {
-                                                        e.preventDefault();
-                                                        const selected = filtered.find(c => c.value === slashCommandValue) || filtered[0];
-                                                        if (selected) {
-                                                            setInput("");
-                                                            selected.action();
+                                                        if (e.key === 'ArrowDown') {
+                                                            e.preventDefault();
+                                                            const nextIdx = currentIndex === -1 ? 0 : (currentIndex + 1) % filtered.length;
+                                                            setSlashCommandValue(filtered[nextIdx].value);
+                                                        } else if (e.key === 'ArrowUp') {
+                                                            e.preventDefault();
+                                                            const nextIdx = currentIndex === -1 ? filtered.length - 1 : (currentIndex - 1 + filtered.length) % filtered.length;
+                                                            setSlashCommandValue(filtered[nextIdx].value);
+                                                        } else if (e.key === 'Enter') {
+                                                            e.preventDefault();
+                                                            const selected = filtered.find(c => c.value === slashCommandValue) || filtered[0];
+                                                            if (selected) {
+                                                                setInput("");
+                                                                selected.action();
+                                                            }
                                                         }
                                                     }
                                                 }
-                                            }
-                                        }}
-                                        disabled={streaming || !!pendingAskQuestion}
-                                        placeholder="Command Parallax..."
-                                    />
-                                </PromptInputBody>
-                                <PromptInputFooter>
-                                    <PromptInputTools>
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger className="flex items-center gap-2 px-3 py-1.5 border border-border/40 hover:bg-white/5 rounded-md transition-colors cursor-pointer outline-none">
-                                                {mode === 'agent' && <Robot weight="duotone" className="w-4 h-4 text-primary" />}
-                                                {mode === 'plan' && <Strategy weight="duotone" className="w-4 h-4 text-amber-500" />}
-                                                {mode === 'debug' && <Bug weight="duotone" className="w-4 h-4 text-destructive" />}
-                                                <span className="text-xs font-medium capitalize">{mode}</span>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="start" className="w-48">
-                                                <DropdownMenuGroup>
-                                                    <DropdownMenuLabel>Select Mode</DropdownMenuLabel>
-                                                    <DropdownMenuSeparator />
-                                                    {([
-                                                        { id: 'agent', label: 'Agent Mode', icon: Robot, color: 'text-primary' },
-                                                        { id: 'plan', label: 'Plan Mode', icon: Strategy, color: 'text-amber-500' },
-                                                        { id: 'debug', label: 'Debug Mode', icon: Bug, color: 'text-destructive' }
-                                                    ] as const).map((m) => {
-                                                        return (
-                                                            <DropdownMenuItem key={m.id} onSelect={() => setMode(m.id)} onClick={() => setMode(m.id)} className="gap-2">
-                                                                <m.icon weight="duotone" className={`w-4 h-4 ${m.color}`} />
-                                                                <span>{m.label}</span>
-                                                            </DropdownMenuItem>
-                                                        )
-                                                    })}
-                                                </DropdownMenuGroup>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                        <ModelSelector open={modelSelectorOpen} onOpenChange={setModelSelectorOpen}>
-                                            <ModelSelectorTrigger className="flex items-center gap-2 px-3 py-1.5 border border-border/40 hover:bg-white/5 rounded-md transition-colors cursor-pointer outline-none max-w-50">
-                                                <ModelSelectorLogo provider={selectedModel.provider.replace("ollama", "ollama-cloud")} />
-                                                <ModelSelectorName>{selectedModel.label}</ModelSelectorName>
-                                            </ModelSelectorTrigger>
-                                            <ModelSelectorContent title="Select Model" className="sm:max-w-106.25">
-                                                <ModelSelectorInput placeholder="Search models..." />
-                                                <ModelSelectorList>
-                                                    <ModelSelectorEmpty>No models found.</ModelSelectorEmpty>
-                                                    {Object.entries(
-                                                        availableModels.reduce((acc, m) => {
-                                                            if (!acc[m.group]) acc[m.group] = [];
-                                                            acc[m.group].push(m);
-                                                            return acc;
-                                                        }, {} as Record<string, typeof availableModels>)
-                                                    ).map(([group, models]) => (
-                                                        <ModelSelectorGroup key={group} heading={group}>
-                                                            {models.map(m => {
-                                                                return (
-                                                                    <ModelSelectorItem
-                                                                        key={m.id}
-                                                                        onSelect={() => {
-                                                                            setSelectedModel({ id: m.id, label: m.label, provider: m.provider });
-                                                                            setModelSelectorOpen(false);
-                                                                        }}
-                                                                    >
-                                                                        <ModelSelectorLogo provider={m.provider.replace("ollama", "ollama-cloud")} className="mr-2" />
-                                                                        {m.label}
-                                                                    </ModelSelectorItem>
-                                                                )
-                                                            })}
-                                                        </ModelSelectorGroup>
-                                                    ))}
-                                                </ModelSelectorList>
-                                            </ModelSelectorContent>
-                                        </ModelSelector>
+                                            }}
+                                            disabled={streaming || !!pendingAskQuestion}
+                                            placeholder="Command Parallax..."
+                                        />
+                                    </PromptInputBody>
+                                    <PromptInputFooter>
+                                        <PromptInputTools>
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger className="flex items-center gap-2 px-3 py-1.5 border border-border/40 hover:bg-white/5 rounded-md transition-colors cursor-pointer outline-none">
+                                                    {mode === 'agent' && <Robot weight="duotone" className="w-4 h-4 text-primary" />}
+                                                    {mode === 'plan' && <Strategy weight="duotone" className="w-4 h-4 text-amber-500" />}
+                                                    {mode === 'debug' && <Bug weight="duotone" className="w-4 h-4 text-destructive" />}
+                                                    <span className="text-xs font-medium capitalize">{mode}</span>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="start" className="w-48">
+                                                    <DropdownMenuGroup>
+                                                        <DropdownMenuLabel>Select Mode</DropdownMenuLabel>
+                                                        <DropdownMenuSeparator />
+                                                        {([
+                                                            { id: 'agent', label: 'Agent Mode', icon: Robot, color: 'text-primary' },
+                                                            { id: 'plan', label: 'Plan Mode', icon: Strategy, color: 'text-amber-500' },
+                                                            { id: 'debug', label: 'Debug Mode', icon: Bug, color: 'text-destructive' }
+                                                        ] as const).map((m) => {
+                                                            return (
+                                                                <DropdownMenuItem key={m.id} onSelect={() => setMode(m.id)} onClick={() => setMode(m.id)} className="gap-2">
+                                                                    <m.icon weight="duotone" className={`w-4 h-4 ${m.color}`} />
+                                                                    <span>{m.label}</span>
+                                                                </DropdownMenuItem>
+                                                            )
+                                                        })}
+                                                    </DropdownMenuGroup>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                            <ModelSelector open={modelSelectorOpen} onOpenChange={setModelSelectorOpen}>
+                                                <ModelSelectorTrigger className="flex items-center gap-2 px-3 py-1.5 border border-border/40 hover:bg-white/5 rounded-md transition-colors cursor-pointer outline-none max-w-50">
+                                                    <ModelSelectorLogo provider={selectedModel.provider.replace("ollama", "ollama-cloud")} />
+                                                    <ModelSelectorName>{selectedModel.label}</ModelSelectorName>
+                                                </ModelSelectorTrigger>
+                                                <ModelSelectorContent title="Select Model" className="sm:max-w-106.25">
+                                                    <ModelSelectorInput placeholder="Search models..." />
+                                                    <ModelSelectorList>
+                                                        <ModelSelectorEmpty>No models found.</ModelSelectorEmpty>
+                                                        {Object.entries(
+                                                            availableModels.reduce((acc, m) => {
+                                                                if (!acc[m.group]) acc[m.group] = [];
+                                                                acc[m.group].push(m);
+                                                                return acc;
+                                                            }, {} as Record<string, typeof availableModels>)
+                                                        ).map(([group, models]) => (
+                                                            <ModelSelectorGroup key={group} heading={group}>
+                                                                {models.map(m => {
+                                                                    return (
+                                                                        <ModelSelectorItem
+                                                                            key={m.id}
+                                                                            onSelect={() => {
+                                                                                setSelectedModel({ id: m.id, label: m.label, provider: m.provider });
+                                                                                setModelSelectorOpen(false);
+                                                                            }}
+                                                                        >
+                                                                            <ModelSelectorLogo provider={m.provider.replace("ollama", "ollama-cloud")} className="mr-2" />
+                                                                            {m.label}
+                                                                        </ModelSelectorItem>
+                                                                    )
+                                                                })}
+                                                            </ModelSelectorGroup>
+                                                        ))}
+                                                    </ModelSelectorList>
+                                                </ModelSelectorContent>
+                                            </ModelSelector>
+                                        </PromptInputTools>
+                                        <PromptInputSubmit
+                                            disabled={!!pendingAskQuestion ? true : (streaming ? false : !input.trim())}
+                                            status={streaming ? "streaming" : "ready"}
+                                            onStop={stopGeneration}
+                                            onClick={e => {
+                                                if (streaming) e.preventDefault();
+                                                // allow standard submission
+                                            }}
+                                        />
+                                    </PromptInputFooter>
+                                </PromptInput>
+                            </div>
 
-                                        <Button
-                                            variant="outline"
-                                            onClick={() => setYoloMode(v => !v)}
-                                            title={yoloMode ? "YOLO Mode Active: Agent will auto-execute any tools" : "Safe Mode Active: You must confirm tool executions"}
-                                            className={cn(
-                                                "flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold uppercase transition-colors cursor-pointer outline-none focus:ring-1 focus:ring-ring",
-                                                yoloMode ? 'border-destructive/50 text-destructive bg-destructive/5' : 'border-border/40 text-muted-foreground'
-                                            )}
-                                        >
-                                            <span className="opacity-70">{yoloMode ? <Warning weight="bold" className="w-3.5 h-3.5" /> : <Shield weight="bold" className="w-3.5 h-3.5 shrink-0" />}</span>
-                                            <span>YOLO</span>
-                                        </Button>
-                                    </PromptInputTools>
-                                    <PromptInputSubmit
-                                        disabled={!!pendingAskQuestion ? true : (streaming ? false : !input.trim())}
-                                        status={streaming ? "streaming" : "ready"}
-                                        onStop={stopGeneration}
-                                        onClick={e => {
-                                            if (streaming) e.preventDefault();
-                                            // allow standard submission
-                                        }}
-                                    />
-                                </PromptInputFooter>
-                            </PromptInput>
+                            <div className="mt-2 flex justify-between">
+                                <span
+                                    className={cn(
+                                        "flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-muted-foreground transition-colors"
+                                    )}
+                                >
+                                    <span>{yoloMode ? "Auto-accepting edits" : "Shift + Tab to accept edits"}</span>
+                                </span>
+                            </div>
                         </div>
                     </div>
-                </div>
                 </div>
             </div>
 
