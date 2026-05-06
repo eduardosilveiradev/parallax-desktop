@@ -161,15 +161,39 @@ app.whenReady().then(async () => {
     });
 });
 
+function killDaemon() {
+    if (daemonProcess && daemonProcess.pid) {
+        const pid = daemonProcess.pid;
+        if (process.platform === 'win32') {
+            import('child_process').then(({ exec }) => {
+                exec(`taskkill /pid ${pid} /T /F`, () => {});
+            });
+        } else {
+            daemonProcess.kill();
+        }
+        daemonProcess = null;
+    }
+}
+
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {
-        if (daemonProcess) daemonProcess.kill();
+        killDaemon();
         app.quit();
     }
 });
 
 app.on('will-quit', () => {
-    if (daemonProcess) daemonProcess.kill();
+    killDaemon();
+});
+
+process.on('SIGINT', () => {
+    killDaemon();
+    process.exit(0);
+});
+
+process.on('SIGTERM', () => {
+    killDaemon();
+    process.exit(0);
 });
 
 // Basic IPC for window controls (since it's frameless, we need minimize/maximize/close)

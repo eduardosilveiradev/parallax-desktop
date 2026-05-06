@@ -1,12 +1,10 @@
 "use client";
 
-import { Gear, Cpu, TerminalWindow, Warning, Shield, Trash, Question, Plus, ListDashes, Archive, PuzzlePiece, GitCommit, GitPullRequest, Atom, Minus, Square, X, Copy, SidebarSimple, ChatTeardrop, Strategy, Bug, Robot, CheckCircle, Circle, CircleNotchIcon, Brain, Folder, FolderIcon, ClockCounterClockwiseIcon } from "@phosphor-icons/react";
+import { Gear, Cpu, TerminalWindow, Warning, Trash, Question, Plus, ListDashes, Archive, PuzzlePiece, GitCommit, GitPullRequest, Atom, Minus, Square, X, Copy, SidebarSimple, ChatTeardrop, Strategy, Bug, Robot, Folder, FolderIcon, ClockCounterClockwiseIcon, ArrowsClockwise, Clock, SpinnerIcon } from "@phosphor-icons/react";
 import { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import { Conversation, ConversationContent, ConversationScrollButton } from "@/components/ai-elements/conversation";
 import { Message, MessageContent, MessageResponse } from "@/components/ai-elements/message";
-import { Reasoning, ReasoningTrigger, ReasoningContent } from "@/components/ai-elements/reasoning";
-import { Tool, ToolHeader, ToolContent, ToolInput, ToolOutput } from "@/components/ai-elements/tool";
 import {
     PromptInput,
     PromptInputTextarea,
@@ -34,7 +32,7 @@ import {
 } from "@/components/ai-elements/model-selector";
 import { Shimmer } from "@/components/ai-elements/shimmer";
 import { CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -44,15 +42,14 @@ import {
     DropdownMenuLabel,
     DropdownMenuGroup,
 } from "@/components/ui/dropdown-menu";
-import { DiffViewer } from "@/components/ai-elements/diff-viewer";
 import { Plan, PlanHeader, PlanTitle, PlanDescription, PlanContent, PlanFooter, PlanTrigger } from "@/components/ai-elements/plan";
-import { ChainOfThought, ChainOfThoughtHeader, ChainOfThoughtContent, ChainOfThoughtStep } from "@/components/ai-elements/chain-of-thought";
 import { TodoList } from "@/components/ai-elements/todo-list";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { WorkGroup } from "@/components/dynamic-work-group";
+import { Spinner } from "@/components/ui/spinner";
 
 type Block =
     | { type: 'user', id: string, text: string }
@@ -62,23 +59,76 @@ type Block =
 
 const API_URL = "http://localhost:3555";
 
-const getWelcomeMessage = (name: string) => {
-    const hour = new Date().getHours();
+const getWelcomeMessage = (name: string, overrideHour?: number | null) => {
+    const hour = overrideHour !== undefined && overrideHour !== null ? overrideHour : new Date().getHours();
     const formattedName = name ? `, ${name}` : '';
+    const justName = name ? ` ${name}` : '';
+
+    const pick = (options: string[]) => options[Math.floor(Math.random() * options.length)];
 
     if (hour >= 1 && hour < 5) {
-        return `It's ${hour} AM${formattedName} wtf.`;
+        return pick([
+            `It's ${hour} AM${formattedName}. Go to sleep.`,
+            `Nothing good compiles at ${hour} AM${formattedName}.`,
+            `Running on fumes${formattedName}?`,
+            `Still awake${formattedName}?`,
+            `You know it's ${hour} AM, right?`,
+            `No one is reviewing PRs right now${justName}.`,
+            `Save your work and close the laptop.`,
+            `Vampire hours${formattedName}.`,
+            `Just one more commit? Sure.`
+        ]);
     }
+
     if (hour >= 5 && hour < 12) {
-        return `Good morning${formattedName}.`;
+        return pick([
+            `Good morning${formattedName}.`,
+            `Early start${formattedName}?`,
+            `Coffee first. Then code.`,
+            `Let's build something${justName}.`,
+            `System booted${formattedName}.`,
+            `Fresh start${formattedName}.`,
+            `Don't push to main yet${justName}.`,
+            `Blank canvas${formattedName}.`
+        ]);
     }
+
     if (hour >= 12 && hour < 17) {
-        return `Good afternoon${formattedName}.`;
+        return pick([
+            `Good afternoon${formattedName}.`,
+            `Keep the momentum going${justName}.`,
+            `Focus time${formattedName}.`,
+            `Halfway through the day${justName}.`,
+            `Midday grind${formattedName}.`,
+            `In the zone${formattedName}?`,
+            `Afternoon push${formattedName}.`,
+            `Keep shipping${justName}.`
+        ]);
     }
+
     if (hour >= 17 && hour < 21) {
-        return `Good evening${formattedName}.`;
+        return pick([
+            `Good evening${formattedName}.`,
+            `Winding down${formattedName}?`,
+            `Evening shift${formattedName}.`,
+            `Still at it${formattedName}?`,
+            `Sun is down, screens are up.`,
+            `Closing time soon${justName}?`,
+            `Late afternoon push${formattedName}.`
+        ]);
     }
-    return `Working late${formattedName}?`;
+
+    // 9 PM to 1 AM
+    return pick([
+        `Working late${formattedName}?`,
+        `Midnight oil${formattedName}.`,
+        `Dark mode activated${formattedName}.`,
+        `Quiet hours${formattedName}.`,
+        `Terminal glow${formattedName}.`,
+        `Just one more line${justName}.`,
+        `Night mode${formattedName}.`,
+        `The servers are asleep. You aren't.`
+    ]);
 };
 
 
@@ -110,6 +160,9 @@ export default function Home() {
     const [rateLimitNow, setRateLimitNow] = useState(0);
     const [currentCwd, setCurrentCwd] = useState<string | null>(null);
     const [username, setUsername] = useState<string>("");
+    const [greetingSeed, setGreetingSeed] = useState(0);
+    const [spoofHour, setSpoofHour] = useState<number | null>(null);
+    const welcomeMessage = useMemo(() => getWelcomeMessage(username, spoofHour), [username, greetingSeed, spoofHour]);
     const [settingsOpen, setSettingsOpen] = useState(false);
     const [settingsModelSelectorOpen, setSettingsModelSelectorOpen] = useState(false);
     const [defaultModel, setDefaultModel] = useState<{ id: string, label: string, provider: string }>({
@@ -117,6 +170,8 @@ export default function Home() {
         label: 'Gemini 3 Flash',
         provider: 'google'
     });
+    const [hiddenProviders, setHiddenProviders] = useState<string[]>([]);
+    const [openingFolder, setOpeningFolder] = useState(false);
 
     useEffect(() => {
         const storedName = localStorage.getItem("parallax-username");
@@ -130,6 +185,14 @@ export default function Home() {
                 setSelectedModel(parsed);
             } catch (e) { }
         }
+
+        const storedHidden = localStorage.getItem("parallax-hidden-providers");
+        if (storedHidden) {
+            try {
+                const parsed = JSON.parse(storedHidden);
+                setHiddenProviders(parsed);
+            } catch (e) { }
+        }
     }, []);
 
     useEffect(() => {
@@ -138,6 +201,10 @@ export default function Home() {
         const interval = setInterval(() => setRateLimitNow(Date.now()), 200);
         return () => clearInterval(interval);
     }, [rateLimit]);
+
+    const allProviders = useMemo(() => {
+        return Array.from(new Set(availableModels.map(m => m.provider))).filter(Boolean).sort();
+    }, [availableModels]);
 
     const pendingAskQuestion = useMemo(() => {
         for (let i = blocks.length - 1; i >= 0; i--) {
@@ -206,11 +273,40 @@ export default function Home() {
                 }
 
                 try {
-                    const models = await fetch(`${API_URL}/models`).then(r => r.json());
+                    const [models, modelsDevRes] = await Promise.all([
+                        fetch(`${API_URL}/models`).then(r => r.json()),
+                        fetch('https://models.dev/api.json').then(r => r.json()).catch(e => {
+                            console.warn("Failed to fetch models.dev data", e);
+                            return {};
+                        })
+                    ]);
+                    
+                    const modelsDevIndex: Record<string, string> = {};
+                    if (modelsDevRes) {
+                        for (const provider of Object.values<any>(modelsDevRes)) {
+                            if (provider?.models) {
+                                for (const [modelId, modelData] of Object.entries<any>(provider.models)) {
+                                    if (modelData?.name) {
+                                        modelsDevIndex[modelId.toLowerCase()] = modelData.name;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     if (Array.isArray(models)) {
-                        setAvailableModels(models);
-                        if (models.length > 0 && !models.find(m => m.id === selectedModel.id)) {
-                            const first = models[0];
+                        const augmentedModels = models.map(m => {
+                            const rawId = m.id.split(':').slice(1).join(':');
+                            const niceName = modelsDevIndex[rawId.toLowerCase()];
+                            return {
+                                ...m,
+                                label: niceName || m.label
+                            };
+                        });
+
+                        setAvailableModels(augmentedModels);
+                        if (augmentedModels.length > 0 && !augmentedModels.find(m => m.id === selectedModel.id)) {
+                            const first = augmentedModels[0];
                             setSelectedModel({ id: first.id, label: first.label, provider: first.id.split(':')[0] });
                         }
                     }
@@ -229,7 +325,17 @@ export default function Home() {
 
     useEffect(() => {
         const handler = (e: KeyboardEvent) => {
-            if (e.key === 'Tab' && e.shiftKey) {
+            // Use Alt+M for Mode and Alt+Y for YOLO to preserve Tab accessibility
+            if (e.altKey && e.key.toLowerCase() === 'm') {
+                e.preventDefault();
+                setMode(m => {
+                    if (m === "agent") return "debug";
+                    if (m === "debug") return "plan";
+                    if (m === "plan") return "agent";
+                    return "agent";
+                });
+            }
+            if (e.altKey && e.key.toLowerCase() === 'y') {
                 e.preventDefault();
                 setYoloMode(v => !v);
             }
@@ -264,7 +370,7 @@ export default function Home() {
     const handleSelectDirectory = async () => {
         const promise = (window as any).electronAPI?.selectDirectory() as Promise<string | null> | undefined;
         if (!promise) return;
-
+        setOpeningFolder(true);
         toast.promise(promise, {
             loading: 'Opening directory...',
             success: (dir: string | null) => {
@@ -275,7 +381,8 @@ export default function Home() {
                 }
                 return 'Cancelled directory selection';
             },
-            error: 'Failed to open directory'
+            error: 'Failed to open directory',
+            finally: () => setOpeningFolder(false)
         });
     };
 
@@ -605,6 +712,12 @@ export default function Home() {
 
     return (
         <main className="flex min-h-screen flex-col bg-background text-foreground h-screen overflow-hidden">
+            {openingFolder ? <div className="fixed inset-0 flex items-center justify-center bg-background/50 backdrop-blur-md z-50">
+                <div className="flex flex-col items-center gap-4">
+                    <Spinner className="w-10 h-10" />
+                    <span className="text-sm text-muted-foreground">Opening folder...</span>
+                </div>
+            </div> : null}
             {/* Header */}
             <header className="shrink-0 flex items-center justify-between px-6 py-4 border-b border-border bg-card/50 backdrop-blur-md relative z-10 [-webkit-app-region:drag]">
                 <div className="flex items-center gap-4">
@@ -756,7 +869,29 @@ export default function Home() {
                                         <div className="py-24 flex flex-col gap-5 relative px-8">
                                             <div className="relative z-10 flex flex-col gap-5">
                                                 <div>
-                                                    <h1 className="font-semibold text-xl md:text-2xl text-white" suppressHydrationWarning>{getWelcomeMessage(username)}</h1>
+                                                    <div className="flex items-center gap-2 group">
+                                                        <h1 className="font-semibold text-xl md:text-2xl text-white" suppressHydrationWarning>{welcomeMessage}</h1>
+                                                        {process.env.NODE_ENV === 'development' && (
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-8 w-8 text-white/30 hover:text-white/80 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                                onClick={() => setSpoofHour(h => h === null ? 3 : (h + 5) % 24)}
+                                                                title={`Spoof Hour (Current: ${spoofHour === null ? 'Real Time' : spoofHour})`}
+                                                            >
+                                                                <Clock className="w-4 h-4" />
+                                                            </Button>
+                                                        )}
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-8 w-8 text-white/30 hover:text-white/80 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                            onClick={() => setGreetingSeed(s => s + 1)}
+                                                            title="Reroll Greeting"
+                                                        >
+                                                            <ArrowsClockwise className="w-4 h-4" />
+                                                        </Button>
+                                                    </div>
                                                     <p className="text-xl text-zinc-400 md:text-2xl">What are we building?</p>
                                                 </div>
                                                 <Button
@@ -919,7 +1054,7 @@ export default function Home() {
 
                                     {(() => {
                                         const lastGroup = groupedBlocks[groupedBlocks.length - 1];
-                                        const isWorkPending = streaming && (!lastGroup || (lastGroup.type === 'single' && lastGroup.block.type === 'user'));
+                                        const isWorkPending = streaming && (!lastGroup || lastGroup.type === 'work' || (lastGroup.type === 'single' && lastGroup.block.type === 'user'));
 
                                         if (isWorkPending) {
                                             return (
@@ -1208,7 +1343,7 @@ export default function Home() {
                                                     <ModelSelectorList>
                                                         <ModelSelectorEmpty>No models found.</ModelSelectorEmpty>
                                                         {Object.entries(
-                                                            availableModels.reduce((acc, m) => {
+                                                            availableModels.filter(m => !hiddenProviders.includes(m.provider)).reduce((acc, m) => {
                                                                 if (!acc[m.group]) acc[m.group] = [];
                                                                 acc[m.group].push(m);
                                                                 return acc;
@@ -1254,7 +1389,14 @@ export default function Home() {
                                         "flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-muted-foreground transition-colors"
                                     )}
                                 >
-                                    <span>{yoloMode ? "Auto-accepting edits" : "Shift + Tab to accept edits"}</span>
+                                    <span>{yoloMode ? "Auto-accepting edits" : "Alt+Y to accept edits"}</span>
+                                </span>
+                                <span
+                                    className={cn(
+                                        "flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-muted-foreground transition-colors"
+                                    )}
+                                >
+                                    <span>Alt+M to cycle modes</span>
                                 </span>
                             </div>
                         </div>
@@ -1318,6 +1460,27 @@ export default function Home() {
                             />
                             <p className="text-xs text-muted-foreground">The AI will use this name to personalize its responses.</p>
                         </div>
+                        <div>
+                            <label className="text-sm font-medium">Hidden Providers</label>
+                            <div className="flex items-center gap-2">
+                                {allProviders.map(provider => (
+                                    <label key={provider} className="flex items-center gap-2">
+                                        <input
+                                            type="checkbox"
+                                            checked={hiddenProviders.includes(provider)}
+                                            onChange={(e) => {
+                                                const newHiddenProviders = e.target.checked
+                                                    ? [...hiddenProviders, provider]
+                                                    : hiddenProviders.filter(p => p !== provider);
+                                                setHiddenProviders(newHiddenProviders);
+                                                localStorage.setItem("parallax-hidden-providers", JSON.stringify(newHiddenProviders));
+                                            }}
+                                        />
+                                        <span>{provider}</span>
+                                    </label>
+                                ))}
+                            </div>
+                        </div>
                         <div className="flex flex-col gap-2">
                             <label className="text-sm font-medium">Default Model</label>
                             <ModelSelector open={settingsModelSelectorOpen} onOpenChange={setSettingsModelSelectorOpen}>
@@ -1329,9 +1492,9 @@ export default function Home() {
                                     <ModelSelectorInput placeholder="Search models..." />
                                     <ModelSelectorList>
                                         <ModelSelectorEmpty>No models found.</ModelSelectorEmpty>
-                                        {Array.from(new Set(availableModels.map(m => m.group))).map(group => (
+                                        {Array.from(new Set(availableModels.filter(m => !hiddenProviders.includes(m.provider)).map(m => m.group))).map(group => (
                                             <ModelSelectorGroup key={group} heading={group}>
-                                                {availableModels.filter(m => m.group === group).map(m => (
+                                                {availableModels.filter(m => !hiddenProviders.includes(m.provider) && m.group === group).map(m => (
                                                     <ModelSelectorItem
                                                         key={m.id}
                                                         onSelect={() => {
