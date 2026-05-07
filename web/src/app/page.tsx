@@ -50,6 +50,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { WorkGroup } from "@/components/dynamic-work-group";
 import { Spinner } from "@/components/ui/spinner";
+import { ChatBackground } from "@/components/chat-background";
 
 type Block =
     | { type: 'user', id: string, text: string }
@@ -856,8 +857,7 @@ export default function Home() {
                 <div className="flex-1 relative flex flex-col overflow-hidden">
                     {blocks.length === 0 && (
                         <div className="absolute inset-0 z-0 pointer-events-none">
-                            <Image src="/bg.jpg" alt="Background" priority fill className="object-cover opacity-70 brightness-[0.3]" />
-                            <div className="absolute inset-0 bg-background/40 backdrop-blur-[2px]" />
+                            <ChatBackground />
                         </div>
                     )}
                     <div className="flex-1 flex flex-col overflow-hidden relative max-w-3xl w-full mx-auto z-10">
