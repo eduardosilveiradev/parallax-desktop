@@ -281,7 +281,7 @@ export default function Home() {
                             return {};
                         })
                     ]);
-                    
+
                     const modelsDevIndex: Record<string, string> = {};
                     if (modelsDevRes) {
                         for (const provider of Object.values<any>(modelsDevRes)) {
@@ -867,6 +867,8 @@ export default function Home() {
                                 <ConversationContent className="px-6 py-8 gap-1">
                                     {blocks.length === 0 ? (
                                         <div className="py-24 flex flex-col gap-5 relative px-8">
+                                            {/* Dim the background dots dynamically behind the text content */}
+                                            <div className="absolute inset-0 bg-black/60 blur-3xl -z-10 pointer-events-none rounded-3xl" />
                                             <div className="relative z-10 flex flex-col gap-5">
                                                 <div>
                                                     <div className="flex items-center gap-2 group">
@@ -1073,7 +1075,7 @@ export default function Home() {
                         </div>
 
                         {/* Input */}
-                        <div className="shrink-0 p-6 backdrop-blur-md relative z-10 w-full">
+                        <div className="shrink-0 p-6 bg-black/90 rounded-2xl relative z-10 w-full">
                             <div className="max-w-3xl mx-auto relative group">
                                 {blocks.length > 0 && (
                                     <TodoList

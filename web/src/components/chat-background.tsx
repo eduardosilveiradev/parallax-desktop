@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const vertexShaderSource = `#version 300 es
 precision mediump float;
@@ -82,14 +82,14 @@ void main() {
 }
 `;
 
-const OPACITIES = [0.35, 0.6, 0.55, 0.8, 0.45, 0.75, 0.5, 0.7, 0.65, 0.4];
+const OPACITIES = [0.05, 0.1, 0.08, 0.15, 0.07, 0.12, 0.09, 0.11, 0.1, 0.06];
 const COLORS = [
-    0.74, 0.74, 0.74,
-    0.63, 0.63, 0.63,
-    0.52, 0.52, 0.52,
-    0.41, 0.41, 0.41,
-    0.3, 0.3, 0.3,
-    0.84, 0.84, 0.84,
+    0.8, 0.8, 0.8,
+    0.7, 0.7, 0.7,
+    0.6, 0.6, 0.6,
+    0.65, 0.65, 0.65,
+    0.75, 0.75, 0.75,
+    0.8, 0.8, 0.8,
 ];
 
 const compileShader = (
@@ -218,9 +218,11 @@ export function ChatBackground() {
     }, []);
 
     return (
-        <div className="relative h-full w-full" aria-hidden="true">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.06),rgba(0,0,0,0.78)_70%)]" />
-            <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
+        <div className="relative h-full w-full bg-black" aria-hidden="true">
+            <canvas 
+                ref={canvasRef} 
+                className="absolute inset-0 h-full w-full transition-all duration-300 ease-out" 
+            />
         </div>
     );
 }
