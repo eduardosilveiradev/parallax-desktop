@@ -123,7 +123,7 @@ export function ChatBackground() {
         });
         if (!gl) return;
 
-        let animationFrame = 0;
+        let animationFrame: number | null = null;
         const startTime = performance.now();
 
         const vertexShader = compileShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
@@ -199,7 +199,7 @@ export function ChatBackground() {
         draw();
 
         return () => {
-            if (animationFrame) window.cancelAnimationFrame(animationFrame);
+            if (animationFrame !== null) window.cancelAnimationFrame(animationFrame);
             gl.deleteBuffer(positionBuffer);
             gl.deleteProgram(program);
             gl.deleteShader(vertexShader);
