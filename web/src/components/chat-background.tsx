@@ -121,91 +121,106 @@ export function ChatBackground() {
             antialias: false,
             premultipliedAlpha: true,
         });
-        if (!gl) return;
-
-        let animationFrame: number | null = null;
-        const startTime = performance.now();
-
-        const vertexShader = compileShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
-        const fragmentShader = compileShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
-
-        const program = gl.createProgram();
-        if (!program) return;
-        gl.attachShader(program, vertexShader);
-        gl.attachShader(program, fragmentShader);
-        gl.linkProgram(program);
-        if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-            const message = gl.getProgramInfoLog(program) ?? "Unknown shader link error";
-            gl.deleteProgram(program);
-            throw new Error(message);
+        if (!gl) {
+            console.warn("WebGL2 is unavailable; using static chat background fallback.");
+            return;
         }
 
-        const positionBuffer = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-        gl.bufferData(
-            gl.ARRAY_BUFFER,
-            new Float32Array([
-                -1, -1,
-                1, -1,
-                -1, 1,
-                -1, 1,
-                1, -1,
-                1, 1,
-            ]),
-            gl.STATIC_DRAW
-        );
+        let animationFrame: number | null = null;
+        let positionBuffer: WebGLBuffer | null = null;
+        let program: WebGLProgram | null = null;
+        let vertexShader: WebGLShader | null = null;
+        let fragmentShader: WebGLShader | null = null;
 
-        gl.useProgram(program);
+        try {
+            const startTime = performance.now();
 
-        const positionLocation = gl.getAttribLocation(program, "position");
-        gl.enableVertexAttribArray(positionLocation);
-        gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+            vertexShader = compileShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
+            fragmentShader = compileShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
 
-        const resolutionLocation = gl.getUniformLocation(program, "u_resolution");
-        const timeLocation = gl.getUniformLocation(program, "u_time");
-        const opacitiesLocation = gl.getUniformLocation(program, "u_opacities[0]");
-        const colorsLocation = gl.getUniformLocation(program, "u_colors[0]");
-        const totalSizeLocation = gl.getUniformLocation(program, "u_total_size");
-        const dotSizeLocation = gl.getUniformLocation(program, "u_dot_size");
-        const reverseLocation = gl.getUniformLocation(program, "u_reverse");
-
-        if (opacitiesLocation) gl.uniform1fv(opacitiesLocation, OPACITIES);
-        if (colorsLocation) gl.uniform3fv(colorsLocation, COLORS);
-        if (totalSizeLocation) gl.uniform1f(totalSizeLocation, 18.0);
-        if (dotSizeLocation) gl.uniform1f(dotSizeLocation, 2.5);
-        if (reverseLocation) gl.uniform1i(reverseLocation, 0);
-
-        const resize = () => {
-            const dpr = window.devicePixelRatio || 1;
-            const width = Math.max(1, Math.floor(canvas.clientWidth * dpr));
-            const height = Math.max(1, Math.floor(canvas.clientHeight * dpr));
-            if (canvas.width !== width || canvas.height !== height) {
-                canvas.width = width;
-                canvas.height = height;
+            program = gl.createProgram();
+            if (!program) throw new Error("Failed to create shader program");
+            gl.attachShader(program, vertexShader);
+            gl.attachShader(program, fragmentShader);
+            gl.linkProgram(program);
+            if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+                throw new Error(gl.getProgramInfoLog(program) ?? "Unknown shader link error");
             }
-            gl.viewport(0, 0, canvas.width, canvas.height);
-        };
 
-        const draw = () => {
-            resize();
-            gl.clearColor(0, 0, 0, 0);
-            gl.clear(gl.COLOR_BUFFER_BIT);
-            if (resolutionLocation) gl.uniform2f(resolutionLocation, canvas.width, canvas.height);
-            if (timeLocation) gl.uniform1f(timeLocation, (performance.now() - startTime) / 1000);
-            gl.drawArrays(gl.TRIANGLES, 0, 6);
-            animationFrame = window.requestAnimationFrame(draw);
-        };
+            positionBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+            gl.bufferData(
+                gl.ARRAY_BUFFER,
+                new Float32Array([
+                    -1, -1,
+                    1, -1,
+                    -1, 1,
+                    -1, 1,
+                    1, -1,
+                    1, 1,
+                ]),
+                gl.STATIC_DRAW
+            );
 
-        draw();
+            gl.useProgram(program);
+
+            const positionLocation = gl.getAttribLocation(program, "position");
+            gl.enableVertexAttribArray(positionLocation);
+            gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+
+            const resolutionLocation = gl.getUniformLocation(program, "u_resolution");
+            const timeLocation = gl.getUniformLocation(program, "u_time");
+            const opacitiesLocation = gl.getUniformLocation(program, "u_opacities[0]");
+            const colorsLocation = gl.getUniformLocation(program, "u_colors[0]");
+            const totalSizeLocation = gl.getUniformLocation(program, "u_total_size");
+            const dotSizeLocation = gl.getUniformLocation(program, "u_dot_size");
+            const reverseLocation = gl.getUniformLocation(program, "u_reverse");
+
+            if (opacitiesLocation) gl.uniform1fv(opacitiesLocation, OPACITIES);
+            if (colorsLocation) gl.uniform3fv(colorsLocation, COLORS);
+            if (totalSizeLocation) gl.uniform1f(totalSizeLocation, 18.0);
+            if (dotSizeLocation) gl.uniform1f(dotSizeLocation, 2.5);
+            if (reverseLocation) gl.uniform1i(reverseLocation, 0);
+
+            const resize = () => {
+                const dpr = window.devicePixelRatio || 1;
+                const width = Math.max(1, Math.floor(canvas.clientWidth * dpr));
+                const height = Math.max(1, Math.floor(canvas.clientHeight * dpr));
+                if (canvas.width !== width || canvas.height !== height) {
+                    canvas.width = width;
+                    canvas.height = height;
+                }
+                gl.viewport(0, 0, canvas.width, canvas.height);
+            };
+
+            const draw = () => {
+                resize();
+                gl.clearColor(0, 0, 0, 0);
+                gl.clear(gl.COLOR_BUFFER_BIT);
+                if (resolutionLocation) gl.uniform2f(resolutionLocation, canvas.width, canvas.height);
+                if (timeLocation) gl.uniform1f(timeLocation, (performance.now() - startTime) / 1000);
+                gl.drawArrays(gl.TRIANGLES, 0, 6);
+                animationFrame = window.requestAnimationFrame(draw);
+            };
+
+            draw();
+        } catch (error) {
+            console.warn("Failed to initialize chat background shader; using fallback.", error);
+        }
 
         return () => {
             if (animationFrame !== null) window.cancelAnimationFrame(animationFrame);
-            gl.deleteBuffer(positionBuffer);
-            gl.deleteProgram(program);
-            gl.deleteShader(vertexShader);
-            gl.deleteShader(fragmentShader);
+            if (positionBuffer) gl.deleteBuffer(positionBuffer);
+            if (program) gl.deleteProgram(program);
+            if (vertexShader) gl.deleteShader(vertexShader);
+            if (fragmentShader) gl.deleteShader(fragmentShader);
         };
     }, []);
 
-    return <canvas ref={canvasRef} className="h-full w-full" aria-hidden="true" />;
+    return (
+        <div className="relative h-full w-full" aria-hidden="true">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.06),rgba(0,0,0,0.78)_70%)]" />
+            <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
+        </div>
+    );
 }
