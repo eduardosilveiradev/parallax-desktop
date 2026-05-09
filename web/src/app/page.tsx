@@ -868,7 +868,7 @@ export default function Home() {
                                     {blocks.length === 0 ? (
                                         <div className="py-24 flex flex-col gap-5 relative px-8">
                                             {/* Dim the background dots dynamically behind the text content */}
-                                            <div className="absolute inset-0 bg-black/60 blur-3xl -z-10 pointer-events-none rounded-3xl" />
+                                            <div className="absolute inset-0 bg-black/60 blur-3xl pointer-events-none rounded-3xl" />
                                             <div className="relative z-10 flex flex-col gap-5">
                                                 <div>
                                                     <div className="flex items-center gap-2 group">

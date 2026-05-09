@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 
 const vertexShaderSource = `#version 300 es
 precision mediump float;
@@ -82,7 +82,7 @@ void main() {
 }
 `;
 
-const OPACITIES = [0.05, 0.1, 0.08, 0.15, 0.07, 0.12, 0.09, 0.11, 0.1, 0.06];
+const OPACITIES = [0.2, 0.4, 0.3, 0.5, 0.22, 0.38, 0.28, 0.42, 0.35, 0.25];
 const COLORS = [
     0.8, 0.8, 0.8,
     0.7, 0.7, 0.7,
