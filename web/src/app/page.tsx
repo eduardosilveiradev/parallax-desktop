@@ -1,7 +1,7 @@
 "use client";
 
 import { Gear, Cpu, TerminalWindow, Warning, Trash, Question, Plus, ListDashes, Archive, PuzzlePiece, GitCommit, GitPullRequest, Atom, Minus, Square, X, Copy, SidebarSimple, ChatTeardrop, Strategy, Bug, Robot, Folder, FolderIcon, ClockCounterClockwiseIcon, ArrowsClockwise, Clock, SpinnerIcon } from "@phosphor-icons/react";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { toast } from "sonner";
 import { Conversation, ConversationContent, ConversationScrollButton } from "@/components/ai-elements/conversation";
 import { Message, MessageContent, MessageResponse } from "@/components/ai-elements/message";
@@ -140,7 +140,7 @@ export default function Home() {
     const [blocks, setBlocks] = useState<Block[]>([]);
     const [input, setInput] = useState("");
     const [streaming, setStreaming] = useState(false);
-    const [abortController, setAbortController] = useState<AbortController | null>(null);
+    const abortControllerRef = useRef<AbortController | null>(null);
     const [availableModels, setAvailableModels] = useState<{ id: string, label: string, provider: string, group: string }[]>([]);
     const [selectedModel, setSelectedModel] = useState<{ id: string, label: string, provider: string }>({
         id: 'gemini:gemini-3-flash-preview',
@@ -401,10 +401,8 @@ export default function Home() {
     };
 
     const stopGeneration = () => {
-        if (abortController) {
-            abortController.abort();
-            setAbortController(null);
-        }
+        abortControllerRef.current?.abort();
+        abortControllerRef.current = null;
         setStreaming(false);
     };
 
@@ -455,7 +453,7 @@ export default function Home() {
         setStreaming(true);
 
         const controller = new AbortController();
-        setAbortController(controller);
+        abortControllerRef.current = controller;
 
         const userBlockId = crypto.randomUUID();
         setBlocks(prev => [...prev, { type: 'user', id: userBlockId, text: displayUserText }]);
@@ -584,8 +582,8 @@ export default function Home() {
                 console.error(err);
             }
         } finally {
+            abortControllerRef.current = null;
             setStreaming(false);
-            setAbortController(null);
             refreshSessions();
         }
     };
