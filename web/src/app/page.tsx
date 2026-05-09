@@ -869,28 +869,30 @@ export default function Home() {
                                             <div className="absolute inset-0 bg-black/60 blur-3xl pointer-events-none rounded-3xl" />
                                             <div className="relative z-10 flex flex-col gap-5">
                                                 <div>
-                                                    <div className="flex items-center gap-2 group">
+                                                    <div className="flex items-center gap-2 group justify-between">
                                                         <h1 className="font-semibold text-xl md:text-2xl text-white" suppressHydrationWarning>{welcomeMessage}</h1>
                                                         {process.env.NODE_ENV === 'development' && (
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="icon"
-                                                                className="h-8 w-8 text-white/30 hover:text-white/80 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                                onClick={() => setSpoofHour(h => h === null ? 3 : (h + 5) % 24)}
-                                                                title={`Spoof Hour (Current: ${spoofHour === null ? 'Real Time' : spoofHour})`}
-                                                            >
-                                                                <Clock className="w-4 h-4" />
-                                                            </Button>
+                                                            <div>
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    className="h-8 w-8 text-white/30 hover:text-white/80 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                                    onClick={() => setSpoofHour(h => h === null ? 3 : (h + 5) % 24)}
+                                                                    title={`Spoof Hour (Current: ${spoofHour === null ? 'Real Time' : spoofHour})`}
+                                                                >
+                                                                    <Clock className="w-4 h-4" />
+                                                                </Button>
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    className="h-8 w-8 text-white/30 hover:text-white/80 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                                    onClick={() => setGreetingSeed(s => s + 1)}
+                                                                    title="Reroll Greeting"
+                                                                >
+                                                                    <ArrowsClockwise className="w-4 h-4" />
+                                                                </Button>
+                                                            </div>
                                                         )}
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            className="h-8 w-8 text-white/30 hover:text-white/80 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                            onClick={() => setGreetingSeed(s => s + 1)}
-                                                            title="Reroll Greeting"
-                                                        >
-                                                            <ArrowsClockwise className="w-4 h-4" />
-                                                        </Button>
                                                     </div>
                                                     <p className="text-xl text-zinc-400 md:text-2xl">What are we building?</p>
                                                 </div>
