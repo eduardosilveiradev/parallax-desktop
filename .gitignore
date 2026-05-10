@@ -45,3 +45,7 @@ next-env.d.ts
 */node_modules
 */.next
 web/out/
+
+*.py
+.venv/
+chroma_db/
